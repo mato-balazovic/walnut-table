@@ -55,21 +55,23 @@ nav a:hover { color: var(--maroon) }
 @media (max-width: 560px) { nav { gap: 16px } .mark span { display: none } }
 
 /* opening */
-figure.hero { position: relative }
-.hero-img { width: 100%; height: min(78vh, 860px); object-fit: cover; object-position: 50% 30%; background: var(--wood) }
-.kind.over { position: absolute; left: var(--gut); bottom: 14px; border: 0; background: rgba(20, 17, 15, .66); color: #f7f1ed }
-.hero-text { padding-top: 48px }
-.hero-grid { display: grid; gap: 36px; margin-top: 28px }
-@media (min-width: 960px) { .hero-text { padding-top: 64px } .hero-grid { grid-template-columns: 1.4fr 1fr; gap: 64px; align-items: start } }
-.eyebrow { margin: 0 0 18px; font: 500 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--maroon) }
-h1 { margin: 0; font: 760 clamp(46px, 8.6vw, 112px)/.92 var(--display); font-stretch: 112%; letter-spacing: -.025em }
+.cover { display: grid }
+.cover-pic { margin: 0; background: var(--wood) }
+.cover-pic img { width: 100% }
+.cover-pic .zoom { height: 100%; border-radius: 0 }
+.cover-text { padding: 40px var(--gut) 0; display: flex; flex-direction: column; justify-content: center; gap: 28px }
+@media (min-width: 900px) {
+  .cover { grid-template-columns: minmax(0, 1fr) auto; min-height: calc(100vh - 57px) }
+  .cover-pic { order: 2; height: calc(100vh - 57px); max-height: 1200px; min-height: 560px }
+  .cover-pic img { height: 100%; width: auto; max-width: 52vw; object-fit: cover; object-position: 50% 50% }
+  .cover-text { padding: 48px 56px 48px max(var(--gut), calc((100vw - var(--max)) / 2 + var(--gut))) }
+}
+.eyebrow { margin: 0 0 -10px; font: 500 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--maroon) }
+h1 { margin: 0; font: 760 clamp(46px, 6.6vw, 104px)/.92 var(--display); font-stretch: 112%; letter-spacing: -.025em }
 .lede { margin: 0; max-width: 36ch; font-size: clamp(19px, 2.1vw, 23px); line-height: 1.5 }
 dl.specs { display: grid; grid-template-columns: auto 1fr; gap: 12px 24px; margin: 0; padding-top: 18px; border-top: 2px solid var(--ink) }
 dl.specs dt { font: 500 12px/1.75 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--bark) }
 dl.specs dd { margin: 0; font-size: 16px; line-height: 1.5 }
-.key { margin: 40px 0 0; padding: 16px 18px; background: var(--card); border: 1px solid var(--rule); border-radius: 2px;
-  font-size: 15px; line-height: 1.55; color: var(--bark); max-width: 760px }
-.key b { color: var(--ink); font-weight: 600 }
 
 /* sections */
 section.part { padding-top: 112px }
@@ -97,9 +99,7 @@ figure { margin: 0 }
 .zoom:hover img { transform: scale(1.015) }
 .round .zoom { background: transparent; border-radius: 50% }
 .round .zoom img { border-radius: 50% }
-figcaption { display: flex; gap: 10px; align-items: baseline; margin-top: 10px; font-size: 14px; line-height: 1.45; color: var(--bark) }
-.kind { flex: none; padding: 4px 6px 3px; border: 1px solid var(--pencil); border-radius: 2px;
-  font: 500 10.5px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink) }
+figcaption { margin-top: 10px; font-size: 14px; line-height: 1.45; color: var(--bark) }
 
 /* raw vs oiled */
 .compare { position: relative; width: 100%; max-width: 520px; margin: 0 auto; overflow: hidden;
@@ -127,6 +127,19 @@ figcaption { display: flex; gap: 10px; align-items: baseline; margin-top: 10px; 
   font: 500 10px/1.2 var(--mono); letter-spacing: .1em; text-transform: uppercase; vertical-align: 1px }
 .small { font-size: 15px; color: var(--bark); margin-top: 22px; max-width: 70ch }
 
+/* more pictures */
+details.more { margin-top: 56px; border-top: 1px solid var(--rule); padding-top: 22px }
+details.more summary { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; list-style: none; padding: 11px 16px 10px;
+  border: 1px solid var(--ink); border-radius: 2px; font: 500 12px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase }
+details.more summary::-webkit-details-marker { display: none }
+details.more summary::after { content: "+"; font-size: 15px; line-height: 0 }
+details.more[open] summary::after { content: "\2212" }
+details.more summary:hover { border-color: var(--maroon); color: var(--maroon) }
+details.more .grid { grid-template-columns: 1fr 1fr; margin-top: 22px }
+details.more .zoom { aspect-ratio: 4 / 3 }
+details.more .zoom img { height: 100%; object-fit: cover }
+@media (min-width: 760px) { details.more .grid { grid-template-columns: repeat(4, 1fr) } }
+
 /* diary */
 ol.diary { list-style: none; margin: 0; padding: 0 }
 .entry { display: grid; gap: 14px; padding: 30px 0; border-top: 1px solid var(--rule) }
@@ -137,11 +150,7 @@ ol.diary { list-style: none; margin: 0; padding: 0 }
 .entry p { margin: 0 0 14px; max-width: 62ch }
 .entry .grid { margin-top: 6px }
 
-/* footer */
-footer { margin-top: 120px; border-top: 2px solid var(--ink) }
-footer .wrap { display: grid; gap: 18px; padding-top: 22px; padding-bottom: 64px; font-size: 15px; color: var(--bark) }
-@media (min-width: 900px) { footer .wrap { grid-template-columns: 1fr 1fr; gap: 64px } }
-footer p { margin: 0 0 8px }
+main { padding-bottom: 120px }
 
 /* lightbox */
 dialog.lb { width: 100vw; height: 100vh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: rgba(12, 10, 9, .94); color: #f0e8e2 }
@@ -168,12 +177,11 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
 </header>
 
 <main id="top">
-  <figure class="hero"><img class="hero-img" src="img/hero-1600.jpg" srcset="img/hero-800.jpg 800w, img/hero-1600.jpg 1600w, img/hero-2400.jpg 2400w" sizes="100vw" width="2400" height="1600" alt="The table in the corner of my flat, in the afternoon sun." fetchpriority="high" decoding="async"><span class="kind over">Render</span></figure>
-  <div class="wrap">
-    <div class="hero-text">
+  <div class="cover">
+    <figure class="cover-pic"><a class="zoom" href="img/cover-1600.jpg"><img src="img/cover-1600.jpg" srcset="img/cover-800.jpg 800w, img/cover-1600.jpg 1600w" sizes="(min-width: 900px) 600px, 100vw" width="1600" height="2400" alt="One leg of the walnut table in the afternoon sun, a cane chair behind it." fetchpriority="high" decoding="async"></a></figure>
+    <div class="cover-text">
       <p class="eyebrow">Work in progress</p>
       <h1>The walnut table</h1>
-      <div class="hero-grid">
       <p class="lede">I'm making a round dining table from two slabs of the same walnut tree. A black resin river joins them. Four curved legs carry the top.</p>
       <dl class="specs">
         <dt>Top</dt><dd>110 cm round, 4 cm thick</dd>
@@ -181,9 +189,7 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
         <dt>Wood</dt><dd>Walnut, two slabs from one tree</dd>
         <dt>Status</dt><dd>In the workshop. Latest step on 30 Oct.</dd>
       </dl>
-      </div>
     </div>
-    <p class="key"><b>Render</b> pictures are computer previews of the finished table. <b>Photo</b> pictures show the real wood. <b>Mock-up</b> pictures are my photos of the wood, arranged on the computer.</p>
   </div>
 
   <section class="part" id="wood">
@@ -192,10 +198,11 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
       <div class="cols tall">
         <div class="text">
           <h2>It started with two slabs</h2>
-          <p>Both slabs come from the same walnut tree, so their colour and grain match. They still have their natural, wavy edges.</p>
+          <p>I call them bro and sis: a brother and a sister, cut from the same walnut tree.</p>
+          <p>That's why their colour and grain match. They still have their natural, wavy edges.</p>
           <p>Each slab has one flaw I decided to keep. One has a big knot. The other has a hole that goes right through. Both get filled with black resin and stay on show.</p>
         </div>
-        <figure class="fig"><a class="zoom" href="img/slabs-1186.jpg"><img src="img/slabs-1186.jpg" srcset="img/slabs-800.jpg 800w, img/slabs-1186.jpg 1186w" sizes="(min-width: 900px) 40vw, 100vw" width="1186" height="1800" alt="The two slabs before any work. The knot is in the left one, the hole in the right one." loading="lazy" decoding="async"></a><figcaption><span class="kind">Photo</span><span>The two slabs before any work. The knot is in the left one, the hole in the right one.</span></figcaption></figure>
+        <figure class="fig"><a class="zoom" href="img/slabs-2400.jpg"><img src="img/slabs-1600.jpg" srcset="img/slabs-800.jpg 800w, img/slabs-1600.jpg 1600w, img/slabs-2400.jpg 2400w" sizes="(min-width: 900px) 40vw, 100vw" width="3891" height="4474" alt="Bro and sis before any work. The knot is in the left one, the hole in the right one." loading="lazy" decoding="async"></a><figcaption>Bro and sis before any work. The knot is in the left one, the hole in the right one.</figcaption></figure>
       </div>
       <div class="cols flip spaced">
         <div class="text">
@@ -203,7 +210,7 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
           <p>Raw walnut looks dusty and grey. Oil brings out the dark chocolate colour and the pattern of the grain.</p>
           <p>Drag across the picture to compare the slabs as they are today with the same wood oiled.</p>
         </div>
-        <figure><div class="compare" style="aspect-ratio:4620/6390"><img class="a" src="img/slabs-raw-1400.webp" srcset="img/slabs-raw-800.webp 800w, img/slabs-raw-1400.webp 1400w" sizes="(min-width: 900px) 520px, 100vw" width="4620" height="6390" alt="The two slabs as they are today, raw" loading="lazy" decoding="async"><img class="b" src="img/slabs-oiled-1400.webp" srcset="img/slabs-oiled-800.webp 800w, img/slabs-oiled-1400.webp 1400w" sizes="(min-width: 900px) 520px, 100vw" width="4620" height="6390" alt="The same two slabs with oil" loading="lazy" decoding="async"><span class="tag l">Raw</span><span class="tag r">Oiled</span><input type="range" min="0" max="100" value="50" aria-label="Move left for raw wood, right for oiled wood"><div class="line"><span class="knob" aria-hidden="true">&harr;</span></div></div><figcaption><span class="kind">Mock-up</span><span>My photos of the two slabs. Left of the line: raw, as they are today. Right: the same wood with oil, the knot and the hole filled black.</span></figcaption></figure>
+        <figure><div class="compare" style="aspect-ratio:4620/6390"><img class="a" src="img/slabs-raw-1400.webp" srcset="img/slabs-raw-800.webp 800w, img/slabs-raw-1400.webp 1400w" sizes="(min-width: 900px) 520px, 100vw" width="4620" height="6390" alt="The two slabs as they are today, raw" loading="lazy" decoding="async"><img class="b" src="img/slabs-oiled-1400.webp" srcset="img/slabs-oiled-800.webp 800w, img/slabs-oiled-1400.webp 1400w" sizes="(min-width: 900px) 520px, 100vw" width="4620" height="6390" alt="The same two slabs with oil" loading="lazy" decoding="async"><span class="tag l">Raw</span><span class="tag r">Oiled</span><input type="range" min="0" max="100" value="50" aria-label="Move left for raw wood, right for oiled wood"><div class="line"><span class="knob" aria-hidden="true">&harr;</span></div></div><figcaption>My photos of the two slabs. Left of the line: raw, as they are today. Right: the same wood with oil, the knot and the hole filled black.</figcaption></figure>
       </div>
     </div>
   </section>
@@ -217,11 +224,14 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
           <p>The two wavy edges face each other across the middle of the table. The gap between them becomes a river of black resin.</p>
           <p>The river is 1.5 cm wide at its narrowest and about 9.5 cm at its widest. The knot and the hole get the same black fill.</p>
         </div>
-        <figure class="fig"><a class="zoom" href="img/top-1400.jpg"><img src="img/top-1400.jpg" srcset="img/top-800.jpg 800w, img/top-1400.jpg 1400w" sizes="(min-width: 900px) 58vw, 100vw" width="1400" height="1400" alt="The finished top from above. The knot sits upper left, the hole lower right." loading="lazy" decoding="async"></a><figcaption><span class="kind">Render</span><span>The finished top from above. The knot sits upper left, the hole lower right.</span></figcaption></figure>
+        <figure class="fig"><a class="zoom" href="img/topcorner-1800.jpg"><img src="img/topcorner-1600.jpg" srcset="img/topcorner-800.jpg 800w, img/topcorner-1600.jpg 1600w, img/topcorner-1800.jpg 1800w" sizes="(min-width: 900px) 58vw, 100vw" width="1800" height="1200" alt="The top in the corner, from standing height." loading="lazy" decoding="async"></a><figcaption>The top in the corner, from standing height.</figcaption></figure>
       </div>
-      <div class="grid g2 spaced">
-        <figure class="fig"><a class="zoom" href="img/detail-1800.jpg"><img src="img/detail-1600.jpg" srcset="img/detail-800.jpg 800w, img/detail-1600.jpg 1600w, img/detail-1800.jpg 1800w" sizes="(min-width: 760px) 50vw, 100vw" width="1800" height="1200" alt="The river up close, with the knot and the hole filled black." loading="lazy" decoding="async"></a><figcaption><span class="kind">Render</span><span>The river up close, with the knot and the hole filled black.</span></figcaption></figure>
-        <figure class="fig round"><a class="zoom" href="img/pieces-2400.jpg"><img src="img/pieces-1600.jpg" srcset="img/pieces-800.jpg 800w, img/pieces-1600.jpg 1600w, img/pieces-2400.jpg 2400w" sizes="(min-width: 760px) 50vw, 100vw" width="3300" height="3300" alt="The same top, laid out from photos of my two cut pieces before oil." loading="lazy" decoding="async"></a><figcaption><span class="kind">Mock-up</span><span>The same top, laid out from photos of my two cut pieces before oil.</span></figcaption></figure>
+      <div class="cols flip spaced">
+        <div class="text">
+          <h3>On the real wood</h3>
+          <p>This is the same top, laid out from photos of the two pieces I cut. The river follows their natural edges.</p>
+        </div>
+        <figure class="fig round"><a class="zoom" href="img/pieces-2400.jpg"><img src="img/pieces-1600.jpg" srcset="img/pieces-800.jpg 800w, img/pieces-1600.jpg 1600w, img/pieces-2400.jpg 2400w" sizes="(min-width: 900px) 40vw, 100vw" width="3300" height="3300" alt="The same top, laid out from photos of my two cut pieces before oil." loading="lazy" decoding="async"></a><figcaption>The same top, laid out from photos of my two cut pieces before oil.</figcaption></figure>
       </div>
       <div class="spaced">
         <h3>Six ways to place the slabs</h3>
@@ -234,20 +244,16 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
   <section class="part" id="legs">
     <div class="wrap">
       <div class="head"><span class="num">03</span><span class="label">The legs</span></div>
-      <div class="cols tall">
+      <div class="cols">
         <div class="text">
           <h2>Four legs, one line each</h2>
           <p>The base is four sculpted walnut legs that meet in the middle. Each one reaches out under the top, pinches in at the waist and splays out to the floor.</p>
           <p>The idea comes from the <a href="https://www.youtube.com/watch?v=1jfzM7SEW_4">Spider Table by Foureyes Furniture</a>, which stands on six legs. Mine is adapted to four legs and a 110 cm top.</p>
           <p>The legs will come from the offcuts of the two slabs, plus some extra walnut.</p>
         </div>
-        <figure class="fig"><a class="zoom" href="img/legclose-1600.jpg"><img src="img/legclose-1600.jpg" srcset="img/legclose-800.jpg 800w, img/legclose-1600.jpg 1600w" sizes="(min-width: 900px) 40vw, 100vw" width="1600" height="2400" alt="One leg from shoulder to foot, the others behind it." loading="lazy" decoding="async"></a><figcaption><span class="kind">Render</span><span>One leg from shoulder to foot, the others behind it.</span></figcaption></figure>
+        <figure class="fig"><a class="zoom" href="img/quarterlow-2400.jpg"><img src="img/quarterlow-1600.jpg" srcset="img/quarterlow-800.jpg 800w, img/quarterlow-1600.jpg 1600w, img/quarterlow-2400.jpg 2400w" sizes="(min-width: 900px) 58vw, 100vw" width="2400" height="1600" alt="The legs in the afternoon sun." loading="lazy" decoding="async"></a><figcaption>The legs in the afternoon sun.</figcaption></figure>
       </div>
-      <div class="block spaced"><figure class="fig"><a class="zoom" href="img/profilelow-2400.jpg"><img src="img/profilelow-1600.jpg" srcset="img/profilelow-800.jpg 800w, img/profilelow-1600.jpg 1600w, img/profilelow-2400.jpg 2400w" sizes="(min-width: 1244px) 1180px, calc(100vw - 64px)" width="2400" height="1600" alt="From knee height, square to one pair of legs. The other pair stands edge-on in the middle." loading="lazy" decoding="async"></a><figcaption><span class="kind">Render</span><span>From knee height, square to one pair of legs. The other pair stands edge-on in the middle.</span></figcaption></figure></div>
-      <div class="grid g2">
-        <figure class="fig"><a class="zoom" href="img/quarterlow-2400.jpg"><img src="img/quarterlow-1600.jpg" srcset="img/quarterlow-800.jpg 800w, img/quarterlow-1600.jpg 1600w, img/quarterlow-2400.jpg 2400w" sizes="(min-width: 760px) 50vw, 100vw" width="2400" height="1600" alt="Turned a little, so all four legs separate." loading="lazy" decoding="async"></a><figcaption><span class="kind">Render</span><span>Turned a little, so all four legs separate.</span></figcaption></figure>
-        <figure class="fig"><a class="zoom" href="img/studio-1800.jpg"><img src="img/studio-1600.jpg" srcset="img/studio-800.jpg 800w, img/studio-1600.jpg 1600w, img/studio-1800.jpg 1800w" sizes="(min-width: 760px) 50vw, 100vw" width="1800" height="1200" alt="The whole table in the studio, from a little above." loading="lazy" decoding="async"></a><figcaption><span class="kind">Render</span><span>The whole table in the studio, from a little above.</span></figcaption></figure>
-      </div>
+      <div class="block spaced"><figure class="fig"><a class="zoom" href="img/profilelow-2400.jpg"><img src="img/profilelow-1600.jpg" srcset="img/profilelow-800.jpg 800w, img/profilelow-1600.jpg 1600w, img/profilelow-2400.jpg 2400w" sizes="(min-width: 1244px) 1180px, calc(100vw - 64px)" width="2400" height="1600" alt="From knee height, square to one pair of legs. The other pair stands edge-on in the middle." loading="lazy" decoding="async"></a><figcaption>From knee height, square to one pair of legs. The other pair stands edge-on in the middle.</figcaption></figure></div>
     </div>
   </section>
 
@@ -258,15 +264,18 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
         <div class="text">
           <h2>In the corner</h2>
           <p>The table goes into a corner of my flat, with two cane chairs against the walls.</p>
-          <p>These renders show it in afternoon sun from the windows.</p>
+          <p>The afternoon sun comes in through the windows.</p>
         </div>
-        <figure class="fig"><a class="zoom" href="img/roomleg-1600.jpg"><img src="img/roomleg-1600.jpg" srcset="img/roomleg-800.jpg 800w, img/roomleg-1600.jpg 1600w" sizes="(min-width: 900px) 40vw, 100vw" width="1600" height="2400" alt="One leg, a chair behind it." loading="lazy" decoding="async"></a><figcaption><span class="kind">Render</span><span>One leg, a chair behind it.</span></figcaption></figure>
+        <figure class="fig"><a class="zoom" href="img/roomphoto-1350.jpg"><img src="img/roomphoto-1350.jpg" srcset="img/roomphoto-800.jpg 800w, img/roomphoto-1350.jpg 1350w" sizes="(min-width: 900px) 40vw, 100vw" width="1350" height="1800" alt="The corner from across the room." loading="lazy" decoding="async"></a><figcaption>The corner from across the room.</figcaption></figure>
       </div>
-      <div class="block spaced"><figure class="fig"><a class="zoom" href="img/roomquarter-1800.jpg"><img src="img/roomquarter-1600.jpg" srcset="img/roomquarter-800.jpg 800w, img/roomquarter-1600.jpg 1600w, img/roomquarter-1800.jpg 1800w" sizes="(min-width: 1244px) 1180px, calc(100vw - 64px)" width="1800" height="1200" alt="From standing height, with the two cane chairs." loading="lazy" decoding="async"></a><figcaption><span class="kind">Render</span><span>From standing height, with the two cane chairs.</span></figcaption></figure></div>
-      <div class="grid g2">
-        <figure class="fig"><a class="zoom" href="img/roomwide-1800.jpg"><img src="img/roomwide-1600.jpg" srcset="img/roomwide-800.jpg 800w, img/roomwide-1600.jpg 1600w, img/roomwide-1800.jpg 1800w" sizes="(min-width: 760px) 50vw, 100vw" width="1800" height="1200" alt="The whole corner." loading="lazy" decoding="async"></a><figcaption><span class="kind">Render</span><span>The whole corner.</span></figcaption></figure>
-        <figure class="fig"><a class="zoom" href="img/roomlow-2400.jpg"><img src="img/roomlow-1600.jpg" srcset="img/roomlow-800.jpg 800w, img/roomlow-1600.jpg 1600w, img/roomlow-2400.jpg 2400w" sizes="(min-width: 760px) 50vw, 100vw" width="2400" height="1600" alt="The legs in the afternoon sun." loading="lazy" decoding="async"></a><figcaption><span class="kind">Render</span><span>The legs in the afternoon sun.</span></figcaption></figure>
+      <div class="grid g2 spaced">
+        <figure class="fig"><a class="zoom" href="img/roomwide-1800.jpg"><img src="img/roomwide-1600.jpg" srcset="img/roomwide-800.jpg 800w, img/roomwide-1600.jpg 1600w, img/roomwide-1800.jpg 1800w" sizes="(min-width: 760px) 50vw, 100vw" width="1800" height="1200" alt="The whole corner." loading="lazy" decoding="async"></a><figcaption>The whole corner.</figcaption></figure>
+        <figure class="fig"><a class="zoom" href="img/roomprofile-2400.jpg"><img src="img/roomprofile-1600.jpg" srcset="img/roomprofile-800.jpg 800w, img/roomprofile-1600.jpg 1600w, img/roomprofile-2400.jpg 2400w" sizes="(min-width: 760px) 50vw, 100vw" width="2400" height="1600" alt="Straight on, with both chairs." loading="lazy" decoding="async"></a><figcaption>Straight on, with both chairs.</figcaption></figure>
       </div>
+      <details class="more">
+        <summary>More pictures</summary>
+        <div class="grid"><figure class="fig"><a class="zoom" href="img/more1-1400.jpg"><img src="img/more1-1400.jpg" srcset="img/more1-800.jpg 800w, img/more1-1400.jpg 1400w" sizes="(min-width: 760px) 25vw, 50vw" width="1400" height="1400" alt="The top from above. The knot sits upper left, the hole lower right." loading="lazy" decoding="async"></a><figcaption>The top from above. The knot sits upper left, the hole lower right.</figcaption></figure><figure class="fig"><a class="zoom" href="img/more2-1800.jpg"><img src="img/more2-1600.jpg" srcset="img/more2-800.jpg 800w, img/more2-1600.jpg 1600w, img/more2-1800.jpg 1800w" sizes="(min-width: 760px) 25vw, 50vw" width="1800" height="1200" alt="The river up close, with the knot and the hole filled black." loading="lazy" decoding="async"></a><figcaption>The river up close, with the knot and the hole filled black.</figcaption></figure><figure class="fig"><a class="zoom" href="img/more3-2400.jpg"><img src="img/more3-1600.jpg" srcset="img/more3-800.jpg 800w, img/more3-1600.jpg 1600w, img/more3-2400.jpg 2400w" sizes="(min-width: 760px) 25vw, 50vw" width="2400" height="1600" alt="The legs from knee height." loading="lazy" decoding="async"></a><figcaption>The legs from knee height.</figcaption></figure><figure class="fig"><a class="zoom" href="img/more4-2400.jpg"><img src="img/more4-1600.jpg" srcset="img/more4-800.jpg 800w, img/more4-1600.jpg 1600w, img/more4-2400.jpg 2400w" sizes="(min-width: 760px) 25vw, 50vw" width="2400" height="1600" alt="Turned a little, so all four legs separate." loading="lazy" decoding="async"></a><figcaption>Turned a little, so all four legs separate.</figcaption></figure><figure class="fig"><a class="zoom" href="img/more5-1600.jpg"><img src="img/more5-1600.jpg" srcset="img/more5-800.jpg 800w, img/more5-1600.jpg 1600w" sizes="(min-width: 760px) 25vw, 50vw" width="1600" height="2400" alt="One leg from shoulder to foot." loading="lazy" decoding="async"></a><figcaption>One leg from shoulder to foot.</figcaption></figure><figure class="fig"><a class="zoom" href="img/more6-1800.jpg"><img src="img/more6-1600.jpg" srcset="img/more6-800.jpg 800w, img/more6-1600.jpg 1600w, img/more6-1800.jpg 1800w" sizes="(min-width: 760px) 25vw, 50vw" width="1800" height="1200" alt="The whole table from a little above." loading="lazy" decoding="async"></a><figcaption>The whole table from a little above.</figcaption></figure><figure class="fig"><a class="zoom" href="img/more7-2400.jpg"><img src="img/more7-1600.jpg" srcset="img/more7-800.jpg 800w, img/more7-1600.jpg 1600w, img/more7-2400.jpg 2400w" sizes="(min-width: 760px) 25vw, 50vw" width="2400" height="1600" alt="Straight on: two legs in full outline, the other two edge-on." loading="lazy" decoding="async"></a><figcaption>Straight on: two legs in full outline, the other two edge-on.</figcaption></figure><figure class="fig"><a class="zoom" href="img/more8-1800.jpg"><img src="img/more8-1600.jpg" srcset="img/more8-800.jpg 800w, img/more8-1600.jpg 1600w, img/more8-1800.jpg 1800w" sizes="(min-width: 760px) 25vw, 50vw" width="1800" height="1200" alt="The whole table from low down." loading="lazy" decoding="async"></a><figcaption>The whole table from low down.</figcaption></figure></div>
+      </details>
     </div>
   </section>
 
@@ -289,7 +298,7 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
             <h3>Bark off, holes cleaned</h3>
             <p>I took the bark and the soft layer off the two facing edges, back to firm wood. The wavy shape stays.</p>
             <p>Then I picked the knot and the hole clean. Both go right through, so the mould has to seal them from below.</p>
-            <div class="grid g4"><figure class="fig"><a class="zoom" href="img/clean1-1350.jpg"><img src="img/clean1-1350.jpg" srcset="img/clean1-800.jpg 800w, img/clean1-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="A facing edge with the bark off. The wavy shape stays." loading="lazy" decoding="async"></a><figcaption><span class="kind">Photo</span><span>A facing edge with the bark off. The wavy shape stays.</span></figcaption></figure> <figure class="fig"><a class="zoom" href="img/clean2-1350.jpg"><img src="img/clean2-1350.jpg" srcset="img/clean2-800.jpg 800w, img/clean2-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="The hole, picked clean. The floor shows through it." loading="lazy" decoding="async"></a><figcaption><span class="kind">Photo</span><span>The hole, picked clean. The floor shows through it.</span></figcaption></figure> <figure class="fig"><a class="zoom" href="img/clean3-1350.jpg"><img src="img/clean3-1350.jpg" srcset="img/clean3-800.jpg 800w, img/clean3-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="The hole up close. The resin fills all of it." loading="lazy" decoding="async"></a><figcaption><span class="kind">Photo</span><span>The hole up close. The resin fills all of it.</span></figcaption></figure> <figure class="fig"><a class="zoom" href="img/clean4-1335.jpg"><img src="img/clean4-1335.jpg" srcset="img/clean4-800.jpg 800w, img/clean4-1335.jpg 1335w" sizes="(min-width: 760px) 25vw, 50vw" width="1335" height="1800" alt="The hole from the edge side." loading="lazy" decoding="async"></a><figcaption><span class="kind">Photo</span><span>The hole from the edge side.</span></figcaption></figure></div>
+            <div class="grid g4"><figure class="fig"><a class="zoom" href="img/clean1-1350.jpg"><img src="img/clean1-1350.jpg" srcset="img/clean1-800.jpg 800w, img/clean1-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="A facing edge with the bark off. The wavy shape stays." loading="lazy" decoding="async"></a><figcaption>A facing edge with the bark off. The wavy shape stays.</figcaption></figure> <figure class="fig"><a class="zoom" href="img/clean2-1350.jpg"><img src="img/clean2-1350.jpg" srcset="img/clean2-800.jpg 800w, img/clean2-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="The hole, picked clean. The floor shows through it." loading="lazy" decoding="async"></a><figcaption>The hole, picked clean. The floor shows through it.</figcaption></figure> <figure class="fig"><a class="zoom" href="img/clean3-1350.jpg"><img src="img/clean3-1350.jpg" srcset="img/clean3-800.jpg 800w, img/clean3-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="The hole up close. The resin fills all of it." loading="lazy" decoding="async"></a><figcaption>The hole up close. The resin fills all of it.</figcaption></figure> <figure class="fig"><a class="zoom" href="img/clean4-1335.jpg"><img src="img/clean4-1335.jpg" srcset="img/clean4-800.jpg 800w, img/clean4-1335.jpg 1335w" sizes="(min-width: 760px) 25vw, 50vw" width="1335" height="1800" alt="The hole from the edge side." loading="lazy" decoding="async"></a><figcaption>The hole from the edge side.</figcaption></figure></div>
           </div>
         </li>
         <li class="entry">
@@ -297,33 +306,20 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
           <div>
             <h3>First cuts</h3>
             <p>I cut both slabs to 127 cm, a little longer than the top, so there is spare at the ends. The offcuts are set aside for the legs.</p>
-            <div class="grid g4"><figure class="fig"><a class="zoom" href="img/cut1-1350.jpg"><img src="img/cut1-1350.jpg" srcset="img/cut1-800.jpg 800w, img/cut1-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="The two top pieces side by side." loading="lazy" decoding="async"></a><figcaption><span class="kind">Photo</span><span>The two top pieces side by side.</span></figcaption></figure> <figure class="fig"><a class="zoom" href="img/cut2-1350.jpg"><img src="img/cut2-1350.jpg" srcset="img/cut2-800.jpg 800w, img/cut2-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="The same two pieces, edge to edge." loading="lazy" decoding="async"></a><figcaption><span class="kind">Photo</span><span>The same two pieces, edge to edge.</span></figcaption></figure> <figure class="fig"><a class="zoom" href="img/cut3-1350.jpg"><img src="img/cut3-1350.jpg" srcset="img/cut3-800.jpg 800w, img/cut3-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="An offcut, set aside for the legs." loading="lazy" decoding="async"></a><figcaption><span class="kind">Photo</span><span>An offcut, set aside for the legs.</span></figcaption></figure> <figure class="fig"><a class="zoom" href="img/cut4-1350.jpg"><img src="img/cut4-1350.jpg" srcset="img/cut4-800.jpg 800w, img/cut4-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="The other offcut." loading="lazy" decoding="async"></a><figcaption><span class="kind">Photo</span><span>The other offcut.</span></figcaption></figure></div>
+            <div class="grid g4"><figure class="fig"><a class="zoom" href="img/cut1-1350.jpg"><img src="img/cut1-1350.jpg" srcset="img/cut1-800.jpg 800w, img/cut1-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="The two top pieces side by side." loading="lazy" decoding="async"></a><figcaption>The two top pieces side by side.</figcaption></figure> <figure class="fig"><a class="zoom" href="img/cut2-1350.jpg"><img src="img/cut2-1350.jpg" srcset="img/cut2-800.jpg 800w, img/cut2-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="The same two pieces, edge to edge." loading="lazy" decoding="async"></a><figcaption>The same two pieces, edge to edge.</figcaption></figure> <figure class="fig"><a class="zoom" href="img/cut3-1350.jpg"><img src="img/cut3-1350.jpg" srcset="img/cut3-800.jpg 800w, img/cut3-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="An offcut, set aside for the legs." loading="lazy" decoding="async"></a><figcaption>An offcut, set aside for the legs.</figcaption></figure> <figure class="fig"><a class="zoom" href="img/cut4-1350.jpg"><img src="img/cut4-1350.jpg" srcset="img/cut4-800.jpg 800w, img/cut4-1350.jpg 1350w" sizes="(min-width: 760px) 25vw, 50vw" width="1350" height="1800" alt="The other offcut." loading="lazy" decoding="async"></a><figcaption>The other offcut.</figcaption></figure></div>
           </div>
         </li>
         <li class="entry">
           <div class="date">Aug to Oct 2026</div>
           <div>
             <h3>Designing on the computer</h3>
-            <p>Before any cutting, I measured and photographed both slabs and modelled the whole table on the computer. That is where the renders on this page come from.</p>
+            <p>Before any cutting, I measured and photographed both slabs and modelled the whole table on the computer.</p>
           </div>
         </li>
       </ol>
     </div>
   </section>
 </main>
-
-<footer>
-  <div class="wrap">
-    <div>
-      <p>Made by Matej, 2026.</p>
-      <p>The leg design is adapted from the <a href="https://www.youtube.com/watch?v=1jfzM7SEW_4">Spider Table by Foureyes Furniture</a>.</p>
-    </div>
-    <div>
-      <p>Render pictures are previews. The real table is still in the workshop.</p>
-      <p>Last updated 7 Nov 2026.</p>
-    </div>
-  </div>
-</footer>
 
 <dialog class="lb" id="lb" aria-label="Picture">
   <button type="button" aria-label="Close">&times;</button>
@@ -341,7 +337,7 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
     var thumb = a.querySelector("img"), fc = a.parentNode.querySelector("figcaption");
     big.src = thumb.currentSrc || thumb.src; big.alt = thumb.alt;
     var full = new Image(); full.onload = function () { if (lb.open) big.src = a.href; }; full.src = a.href;
-    cap.textContent = fc ? fc.textContent.replace(/^(Render|Photo|Mock-up)/, "$1: ") : "";
+    cap.textContent = fc ? fc.textContent : "";
     lb.showModal();
   });
   lb.addEventListener("click", function (e) { if (e.target !== big) lb.close(); });
