@@ -55,19 +55,14 @@ nav a:hover { color: var(--maroon) }
 @media (max-width: 560px) { nav { gap: 16px } .mark span { display: none } }
 
 /* opening */
-.cover { display: grid }
-.cover-pic { margin: 0; background: var(--wood) }
-.cover-pic img { width: 100% }
-.cover-pic .zoom { height: 100%; border-radius: 0 }
-.cover-text { padding: 40px var(--gut) 0; display: flex; flex-direction: column; justify-content: center; gap: 28px }
-@media (min-width: 900px) {
-  .cover { grid-template-columns: minmax(0, 1fr) auto; min-height: calc(100vh - 57px) }
-  .cover-pic { order: 2; height: calc(100vh - 57px); max-height: 1200px; min-height: 560px }
-  .cover-pic img { height: 100%; width: auto; max-width: 52vw; object-fit: cover; object-position: 50% 50% }
-  .cover-text { padding: 48px 56px 48px max(var(--gut), calc((100vw - var(--max)) / 2 + var(--gut))) }
-}
-.eyebrow { margin: 0 0 -10px; font: 500 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--maroon) }
-h1 { margin: 0; font: 760 clamp(46px, 6.6vw, 104px)/.92 var(--display); font-stretch: 112%; letter-spacing: -.025em }
+figure.hero { margin: 0; background: var(--wood) }
+.hero-img { width: 100%; height: min(calc(100vh - 57px), 125vw); height: min(calc(100svh - 57px), 125vw);
+  object-fit: cover; object-position: 50% 30% }
+.hero-text { padding-top: 48px }
+.hero-grid { display: grid; gap: 36px; margin-top: 28px }
+@media (min-width: 960px) { .hero-text { padding-top: 64px } .hero-grid { grid-template-columns: 1.4fr 1fr; gap: 64px; align-items: start } }
+.eyebrow { margin: 0 0 18px; font: 500 12px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--maroon) }
+h1 { margin: 0; font: 760 clamp(46px, 8.6vw, 112px)/.92 var(--display); font-stretch: 112%; letter-spacing: -.025em }
 .lede { margin: 0; max-width: 36ch; font-size: clamp(19px, 2.1vw, 23px); line-height: 1.5 }
 dl.specs { display: grid; grid-template-columns: auto 1fr; gap: 12px 24px; margin: 0; padding-top: 18px; border-top: 2px solid var(--ink) }
 dl.specs dt { font: 500 12px/1.75 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--bark) }
@@ -177,11 +172,12 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
 </header>
 
 <main id="top">
-  <div class="cover">
-    <figure class="cover-pic"><a class="zoom" href="img/cover-1600.jpg"><img src="img/cover-1600.jpg" srcset="img/cover-800.jpg 800w, img/cover-1600.jpg 1600w" sizes="(min-width: 900px) 600px, 100vw" width="1600" height="2400" alt="One leg of the walnut table in the afternoon sun, a cane chair behind it." fetchpriority="high" decoding="async"></a></figure>
-    <div class="cover-text">
+  <figure class="hero"><img class="hero-img" src="img/cover-1600.jpg" srcset="img/cover-800.jpg 800w, img/cover-1600.jpg 1600w, img/cover-2400.jpg 2400w" sizes="100vw" width="2400" height="1600" alt="The walnut table in the corner of my flat, in the afternoon sun." fetchpriority="high" decoding="async"></figure>
+  <div class="wrap">
+    <div class="hero-text">
       <p class="eyebrow">Work in progress</p>
       <h1>The walnut table</h1>
+      <div class="hero-grid">
       <p class="lede">I'm making a round dining table from two slabs of the same walnut tree. A black resin river joins them. Four curved legs carry the top.</p>
       <dl class="specs">
         <dt>Top</dt><dd>110 cm round, 4 cm thick</dd>
@@ -189,6 +185,7 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
         <dt>Wood</dt><dd>Walnut, two slabs from one tree</dd>
         <dt>Status</dt><dd>In the workshop. Latest step on 30 Oct.</dd>
       </dl>
+      </div>
     </div>
   </div>
 
@@ -198,11 +195,11 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
       <div class="cols tall">
         <div class="text">
           <h2>It started with two slabs</h2>
-          <p>I call them bro and sis: a brother and a sister, cut from the same walnut tree.</p>
+          <p>They are a brother and a sister, cut from the same walnut tree.</p>
           <p>That's why their colour and grain match. They still have their natural, wavy edges.</p>
           <p>Each slab has one flaw I decided to keep. One has a big knot. The other has a hole that goes right through. Both get filled with black resin and stay on show.</p>
         </div>
-        <figure class="fig"><a class="zoom" href="img/slabs-2400.jpg"><img src="img/slabs-1600.jpg" srcset="img/slabs-800.jpg 800w, img/slabs-1600.jpg 1600w, img/slabs-2400.jpg 2400w" sizes="(min-width: 900px) 40vw, 100vw" width="3891" height="4474" alt="Bro and sis before any work. The knot is in the left one, the hole in the right one." loading="lazy" decoding="async"></a><figcaption>Bro and sis before any work. The knot is in the left one, the hole in the right one.</figcaption></figure>
+        <figure class="fig"><a class="zoom" href="img/slabs-2400.jpg"><img src="img/slabs-1600.jpg" srcset="img/slabs-800.jpg 800w, img/slabs-1600.jpg 1600w, img/slabs-2400.jpg 2400w" sizes="(min-width: 900px) 40vw, 100vw" width="3891" height="4474" alt="The two slabs before any work. The knot is in the left one, the hole in the right one." loading="lazy" decoding="async"></a><figcaption>The two slabs before any work. The knot is in the left one, the hole in the right one.</figcaption></figure>
       </div>
       <div class="cols flip spaced">
         <div class="text">
@@ -244,14 +241,14 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
   <section class="part" id="legs">
     <div class="wrap">
       <div class="head"><span class="num">03</span><span class="label">The legs</span></div>
-      <div class="cols">
+      <div class="cols tall">
         <div class="text">
           <h2>Four legs, one line each</h2>
           <p>The base is four sculpted walnut legs that meet in the middle. Each one reaches out under the top, pinches in at the waist and splays out to the floor.</p>
           <p>The idea comes from the <a href="https://www.youtube.com/watch?v=1jfzM7SEW_4">Spider Table by Foureyes Furniture</a>, which stands on six legs. Mine is adapted to four legs and a 110 cm top.</p>
           <p>The legs will come from the offcuts of the two slabs, plus some extra walnut.</p>
         </div>
-        <figure class="fig"><a class="zoom" href="img/quarterlow-2400.jpg"><img src="img/quarterlow-1600.jpg" srcset="img/quarterlow-800.jpg 800w, img/quarterlow-1600.jpg 1600w, img/quarterlow-2400.jpg 2400w" sizes="(min-width: 900px) 58vw, 100vw" width="2400" height="1600" alt="The legs in the afternoon sun." loading="lazy" decoding="async"></a><figcaption>The legs in the afternoon sun.</figcaption></figure>
+        <figure class="fig"><a class="zoom" href="img/legclose-1600.jpg"><img src="img/legclose-1600.jpg" srcset="img/legclose-800.jpg 800w, img/legclose-1600.jpg 1600w" sizes="(min-width: 900px) 40vw, 100vw" width="1600" height="2400" alt="One leg, a chair behind it." loading="lazy" decoding="async"></a><figcaption>One leg, a chair behind it.</figcaption></figure>
       </div>
       <div class="block spaced"><figure class="fig"><a class="zoom" href="img/profilelow-2400.jpg"><img src="img/profilelow-1600.jpg" srcset="img/profilelow-800.jpg 800w, img/profilelow-1600.jpg 1600w, img/profilelow-2400.jpg 2400w" sizes="(min-width: 1244px) 1180px, calc(100vw - 64px)" width="2400" height="1600" alt="From knee height, square to one pair of legs. The other pair stands edge-on in the middle." loading="lazy" decoding="async"></a><figcaption>From knee height, square to one pair of legs. The other pair stands edge-on in the middle.</figcaption></figure></div>
     </div>
