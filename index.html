@@ -39,6 +39,11 @@ body { margin: 0; background: var(--paper); color: var(--ink); font: 400 18px/1.
 img { display: block; max-width: 100%; height: auto }
 a { color: inherit; text-decoration-color: var(--maroon); text-underline-offset: 3px }
 a:hover { color: var(--maroon) }
+::selection { background: var(--maroon); color: var(--on-maroon) }
+.hl { color: var(--maroon) }
+h1, h2, h3 { text-wrap: balance }
+.text a, .entry a { text-decoration-thickness: 1px; transition: text-decoration-thickness .2s ease, color .2s ease }
+.text a:hover, .entry a:hover { text-decoration-thickness: 2px }
 .wrap { max-width: var(--max); margin: 0 auto; padding: 0 var(--gut) }
 
 /* top bar */
@@ -52,6 +57,10 @@ nav { display: flex; gap: 22px; overflow-x: auto; scrollbar-width: none; font: 5
 nav::-webkit-scrollbar { display: none }
 nav a { flex: none; text-decoration: none; color: var(--bark); padding: 8px 0 }
 nav a:hover { color: var(--maroon) }
+nav a { position: relative; transition: color .2s ease }
+nav a.on { color: var(--maroon) }
+nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 2px; height: 2px; background: var(--maroon); transform: scaleX(0); transform-origin: 0 50%; transition: transform .3s ease }
+nav a.on::after { transform: scaleX(1) }
 @media (max-width: 560px) { nav { gap: 16px } .mark span { display: none } }
 
 /* opening */
@@ -67,16 +76,27 @@ h1 { margin: 0; font: 760 clamp(46px, 8.6vw, 112px)/.92 var(--display); font-str
 dl.specs { display: grid; grid-template-columns: auto 1fr; gap: 12px 24px; margin: 0; padding-top: 18px; border-top: 2px solid var(--ink) }
 dl.specs dt { font: 500 12px/1.75 var(--mono); text-transform: uppercase; letter-spacing: .08em; color: var(--bark) }
 dl.specs dd { margin: 0; font-size: 16px; line-height: 1.5 }
+.figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px 24px; margin: 56px 0 0; padding: 26px 0 0; border-top: 1px solid var(--rule); list-style: none }
+@media (min-width: 760px) { .figures { grid-template-columns: repeat(4, minmax(0, 1fr)) } }
+.figures b { display: block; font: 740 clamp(40px, 5.2vw, 64px)/1 var(--display); font-stretch: 108%; letter-spacing: -.02em; color: var(--maroon) }
+.figures span { display: block; margin-top: 10px; font: 500 12px/1.4 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--bark) }
 
 /* sections */
 section.part { padding-top: 112px }
 .head { display: flex; align-items: baseline; gap: 16px; padding-top: 18px; margin-bottom: 26px; border-top: 1px solid var(--rule) }
 .num { font: 500 13px/1 var(--mono); letter-spacing: .08em; color: var(--maroon) }
+.num::after { content: ""; display: inline-block; width: 28px; height: 1px; margin-left: 14px; background: var(--maroon); vertical-align: middle; transform: translateY(-1px) }
+section.part > .wrap { position: relative }
+section.part > .wrap::before { content: attr(data-n); content: attr(data-n) / ""; position: absolute; top: 34px; left: calc(var(--gut) - .05em); z-index: 0; pointer-events: none;
+  font: 800 clamp(150px, 21vw, 280px)/.8 var(--display); font-stretch: 112%; letter-spacing: -.04em; color: color-mix(in oklab, var(--ink) 5%, transparent) }
+section.part > .wrap > * { position: relative; z-index: 1 }
+@media (max-width: 560px) { section.part > .wrap::before { display: none } }
 .label { font: 500 13px/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--bark) }
 h2 { margin: 0 0 26px; max-width: 15ch; font: 720 clamp(36px, 5.6vw, 68px)/.98 var(--display); font-stretch: 108%; letter-spacing: -.02em }
 h3 { margin: 0 0 12px; font: 680 clamp(22px, 2.6vw, 28px)/1.15 var(--display); font-stretch: 106%; letter-spacing: -.01em }
 .text { max-width: 60ch }
 .text p { margin: 0 0 16px }
+.text h2 + p { font-size: clamp(19px, 1.9vw, 22px); line-height: 1.5 }
 .cols { display: grid; gap: 32px; align-items: start }
 @media (min-width: 900px) { .cols { grid-template-columns: 5fr 7fr; gap: 64px } .cols.flip { grid-template-columns: 7fr 5fr } .cols.flip > .text { order: 2 } }
 .cols.tall { align-items: center }
@@ -175,7 +195,7 @@ dialog.lb p { margin: 0; padding: 10px 16px 22px; text-align: center; font-size:
 dialog.lb button { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border: 1px solid #6f6762; border-radius: 50%;
   background: transparent; color: #f0e8e2; font: 400 22px/1 var(--body); cursor: pointer }
 dialog.lb button:hover { border-color: #d86355; color: #d86355 }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto } .zoom img, .vid video { transition: none } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto } .zoom img, .vid video, nav a::after { transition: none } }
 </style>
 </head>
 <body>
@@ -194,7 +214,7 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
   <div class="wrap">
     <div class="hero-text">
       <p class="eyebrow">Work in progress</p>
-      <h1>The walnut table</h1>
+      <h1>The <span class="hl">walnut</span> table</h1>
       <div class="hero-grid">
       <p class="lede">I'm making a round dining table from two slabs of the same walnut tree. A black resin river joins them. Four curved legs carry the top.</p>
       <dl class="specs">
@@ -204,15 +224,21 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
         <dt>Status</dt><dd>In the workshop. Latest step on 30 Oct.</dd>
       </dl>
       </div>
+      <ul class="figures" aria-label="In numbers">
+        <li><b>110</b><span>cm across</span></li>
+        <li><b>2</b><span>slabs, one tree</span></li>
+        <li><b>4</b><span>sculpted legs</span></li>
+        <li><b>1:10</b><span>prototype</span></li>
+      </ul>
     </div>
   </div>
 
   <section class="part" id="wood">
-    <div class="wrap">
+    <div class="wrap" data-n="01">
       <div class="head"><span class="num">01</span><span class="label">The wood</span></div>
       <div class="cols tall">
         <div class="text">
-          <h2>It started with two slabs</h2>
+          <h2>It started with <span class="hl">two slabs</span></h2>
           <p>They are a brother and a sister, cut from the same walnut tree.</p>
           <p>That's why their colour and grain match. They still have their natural, wavy edges.</p>
           <p>Each slab has one flaw I decided to keep. One has a big knot. The other has a hole that goes right through. Both get filled with black resin and stay on show.</p>
@@ -231,11 +257,11 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
   </section>
 
   <section class="part" id="top-design">
-    <div class="wrap">
+    <div class="wrap" data-n="02">
       <div class="head"><span class="num">02</span><span class="label">The top</span></div>
       <div class="cols">
         <div class="text">
-          <h2>Two slabs, one river</h2>
+          <h2>Two slabs, <span class="hl">one river</span></h2>
           <p>The two wavy edges face each other across the middle of the table. The gap between them becomes a river of black resin.</p>
           <p>The river is 1.5 cm wide at its narrowest and about 9.5 cm at its widest. The knot and the hole get the same black fill.</p>
         </div>
@@ -257,11 +283,11 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
   </section>
 
   <section class="part" id="legs">
-    <div class="wrap">
+    <div class="wrap" data-n="03">
       <div class="head"><span class="num">03</span><span class="label">The legs</span></div>
       <div class="cols tall">
         <div class="text">
-          <h2>Four legs, one line each</h2>
+          <h2>Four legs, <span class="hl">one line</span> each</h2>
           <p>The base is four sculpted walnut legs that meet in the middle. Each one reaches out under the top, pinches in at the waist and splays out to the floor.</p>
           <p>The idea comes from the <a href="https://www.youtube.com/watch?v=1jfzM7SEW_4">Spider Table by Foureyes Furniture</a>, which stands on six legs. Mine is adapted to four legs and a 110 cm top.</p>
           <p>The legs will come from the offcuts of the two slabs, plus some extra walnut.</p>
@@ -273,11 +299,11 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
   </section>
 
   <section class="part" id="home">
-    <div class="wrap">
+    <div class="wrap" data-n="04">
       <div class="head"><span class="num">04</span><span class="label">At home</span></div>
       <div class="cols tall">
         <div class="text">
-          <h2>In the corner</h2>
+          <h2>In the <span class="hl">corner</span></h2>
           <p>The table goes into a corner of my flat, with two cane chairs against the walls.</p>
           <p>The afternoon sun comes in through the windows.</p>
         </div>
@@ -295,11 +321,11 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
   </section>
 
   <section class="part" id="mini">
-    <div class="wrap">
+    <div class="wrap" data-n="05">
       <div class="head"><span class="num">05</span><span class="label">The prototype</span></div>
       <div class="cols tall">
         <div class="text">
-          <h2>The table, 10x smaller</h2>
+          <h2>The table, <span class="hl">10x</span> smaller</h2>
           <p>On the weekend of 7 and 8 November I made a 1:10 prototype of the table.</p>
           <p>It's cut from the offcuts of the two slabs, so it's the same walnut as the real top.</p>
           <p>Everything is 10x smaller. The top is 11 cm across and it stands just under 8 cm tall.</p>
@@ -311,9 +337,9 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
   </section>
 
   <section class="part" id="diary">
-    <div class="wrap">
+    <div class="wrap" data-n="06">
       <div class="head"><span class="num">06</span><span class="label">Build diary</span></div>
-      <h2>From slabs to table</h2>
+      <h2>From slabs to <span class="hl">table</span></h2>
       <ol class="diary">
         <li class="entry next">
           <div class="date">Up next</div>
@@ -380,6 +406,18 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
     function set() { c.style.setProperty("--at", r.value + "%"); }
     r.addEventListener("input", set); set();
   });
+
+  // nav: the link of the section on screen turns maroon
+  var links = {}; document.querySelectorAll("nav a[href^='#']").forEach(function (a) { links[a.getAttribute("href").slice(1)] = a; });
+  if ("IntersectionObserver" in window) {
+    var seen = {};
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { seen[e.target.id] = e.isIntersecting; });
+      var cur = null; document.querySelectorAll("section.part").forEach(function (s) { if (!cur && seen[s.id]) cur = s.id; });
+      Object.keys(links).forEach(function (k) { links[k].classList.toggle("on", k === cur); if (k === cur) links[k].setAttribute("aria-current", "true"); else links[k].removeAttribute("aria-current"); });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    document.querySelectorAll("section.part").forEach(function (s) { io.observe(s); });
+  }
 
   // the miniature video: plays while the mouse points at it; on touch screens while it is on screen, or on a tap
   var IO = "IntersectionObserver" in window;
