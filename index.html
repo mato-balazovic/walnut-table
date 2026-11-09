@@ -135,6 +135,24 @@ details.more .zoom { aspect-ratio: 4 / 3 }
 details.more .zoom img { height: 100%; object-fit: cover }
 @media (min-width: 760px) { details.more .grid { grid-template-columns: repeat(4, 1fr) } }
 
+/* the miniature: the video is a dim still until pointed at, then comes alive and plays */
+@media (min-width: 560px) { .g3 { grid-template-columns: repeat(3, 1fr) } }
+.clip { width: 100%; max-width: min(440px, calc((100vh - 170px) * 9 / 16)); justify-self: center }
+@supports (height: 100svh) { .clip { max-width: min(440px, calc((100svh - 170px) * 9 / 16)) } }
+.vid { position: relative; overflow: hidden; border-radius: 2px; background: var(--resin); aspect-ratio: 9 / 16; cursor: pointer; outline: none }
+.vid video { display: block; width: 100%; height: 100%; object-fit: cover; filter: saturate(.5) brightness(.78); transform: scale(1.05);
+  transition: filter .7s ease, transform 1.4s cubic-bezier(.2, .7, .2, 1) }
+.vid.on video { filter: none; transform: scale(1) }
+.vid .hint { position: absolute; left: 50%; bottom: 30px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 10px;
+  padding: 11px 15px 10px; border-radius: 999px; background: rgba(20, 17, 15, .72); color: #f7f1ed; white-space: nowrap; pointer-events: none;
+  font: 500 11px/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; transition: opacity .4s ease, transform .4s ease }
+.vid .ico { width: 0; height: 0; border-left: 8px solid currentColor; border-top: 5px solid transparent; border-bottom: 5px solid transparent }
+.vid.on .hint { opacity: 0; transform: translate(-50%, 10px) }
+.vid .bar { position: absolute; left: 0; bottom: 0; width: 100%; height: 3px; background: var(--maroon); transform-origin: 0 50%; transform: scaleX(var(--p, 0)) }
+.vid:focus-visible { outline: 2px solid var(--maroon); outline-offset: 4px }
+.on-touch { display: none }
+@media (hover: none) { .on-mouse { display: none } .on-touch { display: inline } }
+
 /* diary */
 ol.diary { list-style: none; margin: 0; padding: 0 }
 .entry { display: grid; gap: 14px; padding: 30px 0; border-top: 1px solid var(--rule) }
@@ -157,7 +175,7 @@ dialog.lb p { margin: 0; padding: 10px 16px 22px; text-align: center; font-size:
 dialog.lb button { position: absolute; top: 12px; right: 12px; width: 44px; height: 44px; border: 1px solid #6f6762; border-radius: 50%;
   background: transparent; color: #f0e8e2; font: 400 22px/1 var(--body); cursor: pointer }
 dialog.lb button:hover { border-color: #d86355; color: #d86355 }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto } .zoom img { transition: none } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto } .zoom img, .vid video { transition: none } }
 </style>
 </head>
 <body>
@@ -166,7 +184,7 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
   <div class="wrap">
     <a class="mark" href="#top" aria-label="The walnut table, back to top"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="15" fill="#6b4a33"/><path d="M15.2 1.1c1.6 4.6 -1.4 8.8 0.4 14.2c1.5 4.4 -0.2 10.7 1.4 15.6" fill="none" stroke="#110f0e" stroke-width="3.2" stroke-linecap="round"/></svg><span>The walnut table</span></a>
     <nav aria-label="Sections">
-      <a href="#wood">Wood</a><a href="#top-design">Top</a><a href="#legs">Legs</a><a href="#home">At home</a><a href="#diary">Diary</a>
+      <a href="#wood">Wood</a><a href="#top-design">Top</a><a href="#legs">Legs</a><a href="#home">At home</a><a href="#mini">Miniature</a><a href="#diary">Diary</a>
     </nav>
   </div>
 </header>
@@ -276,9 +294,25 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
     </div>
   </section>
 
+  <section class="part" id="mini">
+    <div class="wrap">
+      <div class="head"><span class="num">05</span><span class="label">The miniature</span></div>
+      <div class="cols tall">
+        <div class="text">
+          <h2>The table, ten times smaller</h2>
+          <p>On the weekend of 7 and 8 November I made a miniature of the table.</p>
+          <p>It's cut from the offcuts of the two slabs, so it's the same walnut as the real top.</p>
+          <p>Everything is ten times smaller. The top is 11 cm across and it stands just under 8 cm tall.</p>
+        </div>
+        <figure class="clip"><div class="vid"><video muted playsinline loop preload="none" poster="img/mini-poster-720.jpg" width="720" height="1280" aria-label="Going round the miniature table"><source src="media/mini-1108.mp4" type="video/mp4"></video><span class="hint" aria-hidden="true"><span class="ico"></span><span class="on-mouse">Point to play</span><span class="on-touch">Plays as you scroll</span></span><span class="bar" aria-hidden="true"></span></div><figcaption>Going round the miniature.</figcaption></figure>
+      </div>
+      <div class="grid g3 spaced"><figure class="fig"><a class="zoom" href="img/mini1-2400.jpg"><img src="img/mini1-1600.jpg" srcset="img/mini1-800.jpg 800w, img/mini1-1600.jpg 1600w, img/mini1-2400.jpg 2400w" sizes="(min-width: 560px) 33vw, 100vw" width="3024" height="3024" alt="Up close." loading="lazy" decoding="async"></a><figcaption>Up close.</figcaption></figure> <figure class="fig"><a class="zoom" href="img/mini2-2400.jpg"><img src="img/mini2-1600.jpg" srcset="img/mini2-800.jpg 800w, img/mini2-1600.jpg 1600w, img/mini2-2400.jpg 2400w" sizes="(min-width: 560px) 33vw, 100vw" width="3024" height="3024" alt="A step back." loading="lazy" decoding="async"></a><figcaption>A step back.</figcaption></figure> <figure class="fig"><a class="zoom" href="img/mini3-2400.jpg"><img src="img/mini3-1600.jpg" srcset="img/mini3-800.jpg 800w, img/mini3-1600.jpg 1600w, img/mini3-2400.jpg 2400w" sizes="(min-width: 560px) 33vw, 100vw" width="3024" height="3024" alt="From above." loading="lazy" decoding="async"></a><figcaption>From above.</figcaption></figure></div>
+    </div>
+  </section>
+
   <section class="part" id="diary">
     <div class="wrap">
-      <div class="head"><span class="num">05</span><span class="label">Build diary</span></div>
+      <div class="head"><span class="num">06</span><span class="label">Build diary</span></div>
       <h2>From slabs to table</h2>
       <ol class="diary">
         <li class="entry next">
@@ -311,6 +345,7 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
           <div>
             <h3>Designing on the computer</h3>
             <p>Before any cutting, I measured and photographed both slabs and modelled the whole table on the computer.</p>
+            <div class="block"><figure class="fig"><a class="zoom" href="img/fusion-2400.jpg"><img src="img/fusion-1600.jpg" srcset="img/fusion-800.jpg 800w, img/fusion-1600.jpg 1600w, img/fusion-2400.jpg 2400w" sizes="(min-width: 1244px) 1180px, calc(100vw - 64px)" width="2528" height="1963" alt="The leg sketch in Fusion 360, with its main dimensions in millimetres." loading="lazy" decoding="async"></a><figcaption>The leg sketch in Fusion 360, with its main dimensions in millimetres.</figcaption></figure></div>
           </div>
         </li>
       </ol>
@@ -344,6 +379,34 @@ dialog.lb button:hover { border-color: #d86355; color: #d86355 }
     var r = c.querySelector("input");
     function set() { c.style.setProperty("--at", r.value + "%"); }
     r.addEventListener("input", set); set();
+  });
+
+  // the miniature video: plays while the mouse points at it; on touch screens while it is on screen, or on a tap
+  var IO = "IntersectionObserver" in window;
+  document.querySelectorAll(".vid").forEach(function (box) {
+    var v = box.querySelector("video"), raf = 0;
+    var mouse = matchMedia("(hover: hover) and (pointer: fine)").matches;
+    var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    function tick() {
+      if (v.duration) box.style.setProperty("--p", (v.currentTime / v.duration).toFixed(4));
+      raf = v.paused ? 0 : requestAnimationFrame(tick);
+    }
+    function play() { box.classList.add("on"); var p = v.play(); if (p && p.catch) p.catch(function () { box.classList.remove("on"); }); }
+    function stop() { box.classList.remove("on"); v.pause(); }
+    v.addEventListener("play", function () { if (!raf) raf = requestAnimationFrame(tick); });
+    v.addEventListener("pause", function () { cancelAnimationFrame(raf); raf = 0; });
+    function warm() { if (v.preload !== "auto") { v.preload = "auto"; v.load(); } }
+    if (IO) new IntersectionObserver(function (es, o) { if (es[0].isIntersecting) { warm(); o.disconnect(); } }, { rootMargin: "600px 0px" }).observe(box);
+    else warm();
+    box.tabIndex = 0;
+    box.addEventListener("focus", function () { try { if (box.matches(":focus-visible")) play(); } catch (e) {} });   // keyboard only
+    box.addEventListener("blur", function () { if (!box.matches(":hover")) stop(); });
+    if (mouse) {
+      box.addEventListener("mouseenter", play); box.addEventListener("mouseleave", stop);
+    } else {
+      if (IO && !calm) new IntersectionObserver(function (es) { es[0].isIntersecting ? play() : stop(); }, { threshold: 0.6 }).observe(box);
+      box.addEventListener("click", function () { v.paused ? play() : stop(); });
+    }
   });
 })();
 </script>
