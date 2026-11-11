@@ -225,6 +225,7 @@ async function start(canvas) {
   const gl = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: "high-performance" });
   gl.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   gl.toneMapping = THREE.ACESFilmicToneMapping; gl.toneMappingExposure = 1.05;
+  gl.debug.onShaderError = (g, prog, vs, fs) => console.warn("3D shader:", g.getShaderInfoLog(fs) || g.getShaderInfoLog(vs) || g.getProgramInfoLog(prog));
   const small = Math.min(innerWidth, innerHeight) < 700;       // phones get fewer pieces
 
   const base = canvas.dataset.base, v = "?v=" + canvas.dataset.v;
@@ -289,16 +290,40 @@ async function start(canvas) {
   }
 
   // ---- the top, with the gap, the knot and the hole open until the pour reaches them
-  const pour = { value: 0 };
+  const pour = { value: 0 }, clock = { value: 0 }, landU = { value: new THREE.Vector3() };
+  const rips = { value: Array.from({ length: 8 }, () => new THREE.Vector4(0, 0, -99, 0)) };     // x, y, start time, strength
   const topMat = wood(topMap, { roughnessMap: topRough, roughness: 1, clearcoat: 0.05, envMapIntensity: 0.2 });
   topMat.onBeforeCompile = sh => {
-    sh.uniforms.uFlow = { value: topFlow }; sh.uniforms.uPour = pour;
-    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform sampler2D uFlow;\nuniform float uPour;")
-      .replace("#include <map_fragment>", `#include <map_fragment>
-        vec4 fl = texture2D(uFlow, vMapUv);
+    Object.assign(sh.uniforms, { uFlow: { value: topFlow }, uPour: pour, uTime: clock, uLand: landU, uRip: rips });
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vObj; varying vec3 vTx; varying vec3 vTy;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvObj = position; vTx = normalMatrix * vec3(1.0, 0.0, 0.0); vTy = normalMatrix * vec3(0.0, 1.0, 0.0);");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
+      uniform sampler2D uFlow; uniform float uPour; uniform float uTime; uniform vec3 uLand; uniform vec4 uRip[8];
+      varying vec3 vObj; varying vec3 vTx; varying vec3 vTy;
+      vec2 touch(vec2 p) {                                    // rings spreading from where the pointer touched
+        vec2 g = vec2(0.0);
+        for (int i = 0; i < 8; i++) {
+          float age = uTime - uRip[i].z;
+          if (uRip[i].w > 0.0 && age > 0.0 && age < 2.6) {
+            vec2 d = p - uRip[i].xy; float dist = length(d) + 1e-4, r = age * 0.30;
+            float q = (dist - r) / 0.04; g += d / dist * sin((dist - r) * 105.0) * exp(-q * q) * exp(-age * 1.4) * uRip[i].w;
+          }
+        }
+        return g;
+      }
+      vec2 landing(vec2 p) {                                  // steady small rings where the stream lands
+        vec2 d = p - uLand.xy; float dist = length(d) + 1e-4;
+        return d / dist * sin(dist * 150.0 - uTime * 10.0) * exp(-dist * 13.0) * uLand.z;
+      }`)
+      .replace("#include <map_fragment>", `vec4 fl = texture2D(uFlow, vMapUv);
         if (fl.r > 0.5 && fl.g > uPour) discard;
+        vec2 rip = touch(vObj.xy) + landing(vObj.xy) * fl.r;
+        #ifdef USE_MAP
+          diffuseColor *= texture2D(map, vMapUv + rip * 0.006);
+        #endif
         float front = fl.r * smoothstep(0.05, 0.0, uPour - fl.g) * step(0.001, uPour) * step(uPour, 0.999);
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.30, 0.17, 0.10), front * 0.85);`);
+        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.30, 0.17, 0.10), front * 0.85);`)
+      .replace("#include <normal_fragment_maps>", "#include <normal_fragment_maps>\nnormal = normalize(normal + (vTx * rip.x + vTy * rip.y) * 0.95);");
   };
   const topG = new THREE.Group(); zup.add(topG);
   const topMesh = new THREE.Mesh(topParts().geometry, topMat); topG.add(topMesh);
@@ -306,6 +331,29 @@ async function start(canvas) {
   // the mould under the top for the pour: a pale board, so the open gap and the black epoxy read apart
   const form = new THREE.Mesh(new THREE.BoxGeometry(1.24, 1.24, 0.018), new THREE.MeshStandardMaterial({ color: 0x57493d, roughness: 0.8, envMapIntensity: 0.3 }));
   form.visible = false; zup.add(form);
+
+  // the pour comes out of a pail, drawn in line like the first leg, and falls as a glossy black stream
+  const POUR_H = 0.40, pourG = new THREE.Group(); pourG.visible = false; zup.add(pourG);
+  const pail = (() => {
+    const ax = new THREE.Vector3(Math.cos(-0.42), 0, Math.sin(-0.42)), up = new THREE.Vector3(0, 0, 1);       // the opening looks sideways and a little down
+    const u = new THREE.Vector3().crossVectors(ax, up).normalize(), w = new THREE.Vector3().crossVectors(u, ax).normalize();
+    const Rr = 0.085, Rb = 0.062, depth = 0.17, N = 40, lip = w.clone().multiplyScalar(-Rr), seg = [];
+    const pt = (R, back, a) => u.clone().multiplyScalar(R * Math.cos(a)).addScaledVector(w, R * Math.sin(a)).addScaledVector(ax, -back).sub(lip);
+    for (let i = 0; i < N; i++) {
+      const a = 2 * Math.PI * i / N, b = 2 * Math.PI * (i + 1) / N;
+      seg.push(...pt(Rr, 0, a).toArray(), ...pt(Rr, 0, b).toArray(), ...pt(Rb, depth, a).toArray(), ...pt(Rb, depth, b).toArray());
+      if (i % 5 === 0) seg.push(...pt(Rr, 0, a).toArray(), ...pt(Rb, depth, a).toArray());
+    }
+    const l = lines(seg, 1.5); l.position.z = POUR_H; pourG.add(l); return l;
+  })();
+  const streamGeo = new THREE.CylinderGeometry(0.0075, 0.0045, 1, 12, 1, true); streamGeo.rotateX(Math.PI / 2); streamGeo.translate(0, 0, -0.5);   // hangs down from its top end
+  const stream = new THREE.Mesh(streamGeo, new THREE.MeshPhysicalMaterial({ color: 0x0b0806, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.6 }));
+  stream.position.z = POUR_H; pourG.add(stream);
+  const pourPath = data.pour, landAt = new THREE.Vector3();
+  function pourPoint(v) {
+    const f = clamp(v) * (pourPath.length - 1), i = Math.min(pourPath.length - 2, Math.floor(f)), t = smooth(f - i);
+    return landAt.set(mix(pourPath[i][0], pourPath[i + 1][0], t), mix(pourPath[i][1], pourPath[i + 1][1], t), LEG_H + TOP_T);
+  }
 
   // ---- the two raw slabs, lying side by side at the height of the top
   const SLAB_T = 0.055, SLAB_Z = LEG_H - 0.012, SLAB_X = 0.375;
@@ -373,13 +421,26 @@ async function start(canvas) {
   function size() {
     W = stage.clientWidth; H = stage.clientHeight; gl.setSize(W, H, false);
     cam.aspect = W / H; cam.updateProjectionMatrix(); K = keys(W / H > 1.05);
-    legLines.material.resolution.set(W, H);
+    legLines.material.resolution.set(W, H); pail.material.resolution.set(W, H);
   }
   function where() { const r = story.getBoundingClientRect(); p = clamp(-r.top / Math.max(1, r.height - innerHeight)); }
   addEventListener("resize", () => { size(); where(); });
   addEventListener("scroll", where, { passive: true });
   if (matchMedia("(hover: hover) and (pointer: fine)").matches) addEventListener("pointermove", e => { mx = e.clientX / innerWidth * 2 - 1; my = e.clientY / innerHeight * 2 - 1; });
   if ("IntersectionObserver" in window) new IntersectionObserver(es => { onscreen = es[0].isIntersecting; }).observe(story);
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), topPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(LEG_H + TOP_T)), hit = new THREE.Vector3();
+  let ripI = 0, ripAt = [9, 9], ripT = 0;
+  function touchTop(e, force) {
+    if (ps < T_POUR[0] - 0.035 || ps > T_BACK[0] + 0.005) return;
+    const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+    ray.setFromCamera(ndc, cam); if (!ray.ray.intersectPlane(topPlane, hit)) return;
+    zup.worldToLocal(hit); if (hit.x * hit.x + hit.y * hit.y > TOP_R * TOP_R) return;
+    const now = performance.now() * 0.001;
+    if (!force && Math.hypot(hit.x - ripAt[0], hit.y - ripAt[1]) < 0.045 && now - ripT < 0.5) return;
+    rips.value[ripI].set(hit.x, hit.y, now, force ? 1.3 : 0.8); ripI = (ripI + 1) % rips.value.length; ripAt = [hit.x, hit.y]; ripT = now;
+  }
+  addEventListener("pointermove", e => touchTop(e, false), { passive: true });
+  addEventListener("pointerdown", e => touchTop(e, true), { passive: true });
   size(); where(); ps = p;
 
   const tmp = new THREE.Vector3(), R = (v, a) => ramp(v, a[0], a[1]);
@@ -407,7 +468,18 @@ async function start(canvas) {
     gone.value = tTop;
     movePieces(TP, tTop, time);
     topMesh.visible = tTop >= 0.9;
-    pour.value = R(ps, T_POUR) * 1.01;
+    const pt = R(ps, T_POUR); pour.value = pt * 1.01; clock.value = time * 0.001;
+    const pouring = pt > 0.001 && pt < 0.999 && topMesh.visible;
+    pourG.visible = pouring;
+    if (pouring) {
+      const L = pourPoint(pt + 0.012), start = ramp(pt, 0, 0.035), end = ramp(pt, 0.95, 0.999);
+      pourG.position.set(L.x, L.y, L.z);
+      pail.material.opacity = ramp(pt, 0, 0.02) * (1 - ramp(pt, 0.975, 0.999));
+      pail.rotation.y = Math.sin(time * 0.0016) * 0.035; pail.rotation.z = Math.sin(time * 0.0011) * 0.05;
+      stream.scale.set(1 + Math.sin(time * 0.013) * 0.08, 1 + Math.cos(time * 0.011) * 0.08, POUR_H * start * (1 - end));
+      stream.position.z = POUR_H * (1 - end);
+      landU.value.set(L.x, L.y, start >= 1 ? 1 - end : 0);
+    } else landU.value.z = 0;
     const formIn = easeOut(ramp(tTop, 0.42, 0.8)), formOut = smooth(ramp(ps, T_POUR[1] + 0.004, T_BACK[0] + 0.035));
     form.visible = formIn > 0 && formOut < 1; form.position.z = LEG_H - 0.0095 - 1.4 * (1 - formIn) - 2.6 * formOut;
 
@@ -436,7 +508,116 @@ async function start(canvas) {
   requestAnimationFrame(draw);
 }
 
+// ---------------------------------------------------------------- the leg, measured
+// One leg as a line drawing with its dimensions (mm) and angles, taken from the final leg outline. Drag to turn it.
+// Each dimension draws itself as the picture scrolls into view; the numbers count up.
+const DIMS = [   // lin: from a to b (r, h in m), drawn off to the side by `off`; ang: arc round c from `from` to `to` degrees
+  { kind: "lin", a: [0.395, 0], b: [0.51, 0.75], off: [0.105, 0], axis: "h", value: 750 },
+  { kind: "lin", a: [0.04, 0.75], b: [0.51, 0.75], off: [0, 0.07], axis: "r", value: 470 },
+  { kind: "lin", a: [0, 0.75], b: [0.04, 0.75], off: [0, 0.07], axis: "r", value: 40, ext: [0, 0.107] },
+  { kind: "lin", a: [0.04, 0.72], b: [0.04, 0.75], off: [-0.06, 0], axis: "h", value: 30 },
+  { kind: "ang", c: [0.48, 0.72], from: 0, to: 45, rad: 0.075, value: 45 },
+  { kind: "ang", c: [0.395, 0], from: 113, to: 180, rad: 0.10, value: 67 },
+  { kind: "ang", c: [0.2602, 0.1595], from: 118, to: 180, rad: 0.085, value: 62 },
+  { kind: "lin", a: [0.345, 0], b: [0.395, 0], off: [0, -0.06], axis: "r", value: 50 },
+  { kind: "lin", a: [0, 0], b: [0.345, 0], off: [0, -0.06], axis: "r", value: 345, ext: [0, 0.077] },
+  { kind: "lin", a: [0, 0.077], b: [0, 0.107], off: [-0.06, 0], axis: "h", value: 30 },
+  { kind: "deep", at: [0.51, 0.75], off: [0.045, 0.03], value: 40 },
+];
+async function legViewer(canvas) {
+  const box = canvas.parentNode, labels = box.querySelector(".lv-labels");
+  const gl = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  gl.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+  const data = await fetch(canvas.dataset.base + "leg.json?v=" + canvas.dataset.v).then(r => r.json());
+  const leg = legParts(data.leg);
+  const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(24, 1, 0.05, 30);
+  const turn = new THREE.Group(), zup = new THREE.Group(); zup.rotation.x = -Math.PI / 2; turn.add(zup); scene.add(turn);
+  const legG = new THREE.Group(); legG.position.set(-0.255, 0, -0.375); zup.add(legG);        // turn about the middle of the leg
+  const mats = [];
+  const draw = (seg, width, colour, opacity) => { const l = lines(seg, width); l.material.color.set(colour); l.material.opacity = opacity; mats.push(l.material); return l; };
+  legG.add(draw(leg.segments, 2, LINE, 1));
+  legG.add(draw([0, 0, -0.05, 0, 0, 0.84], 1, LINE, 0.35));                                     // the table's axis
+  const Y = -T / 2, INK = 0xf2e8d4, items = [];
+  for (const d of DIMS) {
+    const seg = [], g = new THREE.Group(); let pivot, at;
+    if (d.kind === "lin") {
+      const a2 = [d.a[0] + d.off[0], d.a[1] + d.off[1]], b2 = [d.b[0] + d.off[0], d.b[1] + d.off[1]];
+      if (d.axis === "h") a2[0] = b2[0] = Math.max(a2[0], b2[0]) * (d.off[0] > 0 ? 1 : 0) + (d.off[0] > 0 ? 0 : Math.min(a2[0], b2[0]));
+      else a2[1] = b2[1] = d.off[1] > 0 ? Math.max(a2[1], b2[1]) : Math.min(a2[1], b2[1]);
+      pivot = [(a2[0] + b2[0]) / 2, (a2[1] + b2[1]) / 2];
+      const P = (p) => [p[0] - pivot[0], 0, p[1] - pivot[1]], tk = 0.012;
+      const ea = d.ext ? [d.a[0], d.ext[1]] : d.a, eb = d.b;
+      seg.push(...P(a2), ...P(b2), ...P(ea), ...P(a2), ...P(eb), ...P(b2));
+      for (const e of [a2, b2]) seg.push(...P([e[0] - tk, e[1] - tk]), ...P([e[0] + tk, e[1] + tk]));       // slashes at the ends
+      const n = Math.hypot(d.off[0], d.off[1]) || 1; at = [pivot[0] + d.off[0] / n * 0.034, Y, pivot[1] + d.off[1] / n * 0.03];
+    } else if (d.kind === "ang") {
+      pivot = d.c; const N = 24;
+      for (let i = 0; i < N; i++) {
+        const t0 = (d.from + (d.to - d.from) * i / N) * Math.PI / 180, t1 = (d.from + (d.to - d.from) * (i + 1) / N) * Math.PI / 180;
+        seg.push(d.rad * Math.cos(t0), 0, d.rad * Math.sin(t0), d.rad * Math.cos(t1), 0, d.rad * Math.sin(t1));
+      }
+      for (const t of [d.from, d.to]) { const a = t * Math.PI / 180; seg.push(0, 0, 0, d.rad * 1.18 * Math.cos(a), 0, d.rad * 1.18 * Math.sin(a)); }
+      const mid = (d.from + d.to) / 2 * Math.PI / 180; at = [d.c[0] + d.rad * 1.42 * Math.cos(mid), Y, d.c[1] + d.rad * 1.42 * Math.sin(mid)];
+    } else {                                                   // the thickness, across the leg
+      pivot = [d.at[0] + d.off[0], d.at[1] + d.off[1]];
+      seg.push(0, -T / 2 - Y, 0, 0, T / 2 - Y, 0, -d.off[0], -T / 2 - Y, -d.off[1], 0, -T / 2 - Y, 0, -d.off[0], T / 2 - Y, -d.off[1], 0, T / 2 - Y, 0);
+      at = [pivot[0] + 0.03, 0, pivot[1] + 0.012];
+    }
+    g.position.set(pivot[0], Y, pivot[1]);
+    const l = draw(seg, 1.2, d.kind === "ang" ? LINE : INK, 0); g.add(l); legG.add(g);
+    const el = document.createElement("span"); el.className = "lv-n" + (d.kind === "ang" ? " ang" : ""); labels.appendChild(el);
+    items.push({ d, g, l, el, at: new THREE.Vector3(...at), shown: -1 });
+  }
+
+  let W = 1, H = 1, az = -0.5, el = 0.1, drag = null, vel = 0, seen = false, prog = 0;
+  function size() {
+    W = box.clientWidth; H = box.clientHeight; gl.setSize(W, H, false); cam.aspect = W / H; cam.updateProjectionMatrix();
+    for (const m of mats) m.resolution.set(W, H);
+  }
+  addEventListener("resize", size); size();
+  canvas.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); box.classList.add("held"); });
+  canvas.addEventListener("pointermove", e => {
+    if (!drag) return;
+    az = clamp(az - (e.clientX - drag.x) * 0.005, -0.95, 0.95); el = clamp(el + (e.clientY - drag.y) * 0.004, -0.35, 0.7); vel = 0;
+    drag = { x: e.clientX, y: e.clientY };
+  });
+  const drop = () => { drag = null; box.classList.remove("held"); };
+  canvas.addEventListener("pointerup", drop); canvas.addEventListener("pointercancel", drop);
+  if ("IntersectionObserver" in window) new IntersectionObserver(es => { seen = es[0].isIntersecting; }).observe(box); else seen = true;
+
+  const v = new THREE.Vector3();
+  function frame(time) {
+    requestAnimationFrame(frame);
+    if (!seen) return;
+    const r = box.getBoundingClientRect();
+    prog += (clamp((innerHeight * 0.92 - r.top) / (innerHeight * 0.75)) - prog) * 0.1;
+    const sway = drag ? 0 : Math.sin(time * 0.0004) * 0.10;
+    const tanF = Math.tan(24 * Math.PI / 360), dist = Math.max(1.02 / (2 * tanF), 0.95 / (2 * tanF * cam.aspect));
+    const a = az + sway;
+    cam.position.set(dist * Math.sin(a) * Math.cos(el), dist * Math.sin(el) + 0.01, dist * Math.cos(a) * Math.cos(el)); cam.lookAt(0, 0.01, 0);
+    items.forEach((it, i) => {
+      const t = easeOut(ramp(prog, 0.12 + i * 0.065, 0.34 + i * 0.065));
+      it.l.material.opacity = t * (it.d.kind === "ang" ? 0.95 : 0.6); it.l.visible = t > 0.01; it.g.scale.setScalar(Math.max(t, 0.001));
+      const n = Math.round(it.d.value * t);
+      if (n !== it.shown) { it.shown = n; it.el.textContent = n + (it.d.kind === "ang" ? "°" : ""); }
+      v.copy(it.at); legG.localToWorld(v); v.project(cam);
+      it.el.style.opacity = t; it.el.style.transform = `translate3d(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px, 0) translate(-50%, -50%)`;
+    });
+    gl.render(scene, cam);
+  }
+  requestAnimationFrame(frame);
+  box.classList.add("live");
+}
+
 const canvas = document.getElementById("table3d");
 const still = () => document.documentElement.classList.add("static");
 if (!canvas || matchMedia("(prefers-reduced-motion: reduce)").matches) still();
 else start(canvas).catch(e => { console.warn("3D landing off:", e); still(); });
+
+// the measured leg starts when it comes near the screen; without WebGL the flat drawing under it stays
+const lv = document.getElementById("leg3d");
+if (lv) {
+  const go = () => legViewer(lv).catch(e => console.warn("3D leg off:", e));
+  if ("IntersectionObserver" in window) { const io = new IntersectionObserver(es => { if (es[0].isIntersecting) { io.disconnect(); go(); } }, { rootMargin: "600px 0px" }); io.observe(lv); }
+  else go();
+}
