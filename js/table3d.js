@@ -186,7 +186,7 @@ function movePieces(S, t, time) {
     const env = S.fromNothing ? 1 - e : Math.sin(Math.PI * e);
     if (env > 0.001) { _ax.set(axis[i3], axis[i3 + 1], axis[i3 + 2]); _qs.setFromAxisAngle(_ax, env * (S.tumble + phase[i] * 3 + drift * (1 + phase[i]))); _qa.premultiply(_qs); }
     const born = S.fromNothing ? ramp(u, 0, 0.14) : ramp(t, t0 - 0.035, t0);
-    const k = born * (u >= 1 ? melt : 1);
+    const k = S.dust ? Math.sin(Math.PI * u) : born * (u >= 1 ? melt : 1);
     _s.set(size[i3] * k, size[i3 + 1] * k, size[i3 + 2] * k);
     _m.compose(_p, _qa, _s); _m.toArray(out, i * 16);
     if (S.recolour) { col[i3] = mix(cA[i3], cB[i3], e); col[i3 + 1] = mix(cA[i3 + 1], cB[i3 + 1], e); col[i3 + 2] = mix(cA[i3 + 2], cB[i3 + 2], e); }
@@ -197,19 +197,23 @@ function movePieces(S, t, time) {
 // ---------------------------------------------------------------- the scroll story
 // p: where in the story (0 to 1). az/el: camera angles. t: what it looks at. fw/fh: the size to keep in frame (m).
 // sx: how far right of centre the subject sits on a wide screen. use: share of the width it may fill.
-const T_LEG = [0.05, 0.17], T_FAN = [0.21, 0.29], T_OUT = [0.31, 0.38], T_SLABS = [0.32, 0.41], T_TOP = [0.45, 0.62], T_POUR = [0.65, 0.775], T_BACK = [0.79, 0.87], T_LOOK = [0.92, 0.97];
+const T_LEG = [0.04, 0.13], T_FAN = [0.16, 0.22], T_OUT = [0.235, 0.29], T_SLABS = [0.24, 0.31], T_CUT = [0.345, 0.515], T_POUR = [0.545, 0.705], T_FIN = [0.72, 0.825], T_BACK = [0.835, 0.895], T_LOOK = [0.93, 0.975];
 function keys(wide) {
   const slabAz = wide ? Math.PI / 4 : -Math.PI / 4;             // slabs lie across a wide screen, upright on a tall one
+  const slab = { t: [0, 0.78, 0], fw: wide ? 2.35 : 1.45, fh: wide ? 1.30 : 1.85, sx: wide ? 0.21 : 0.13, use: 0.55 };
+  const face = { az: -Math.PI / 4, el: 1.5, t: [0.0707, 0.79, -0.0707], fw: 1.44, fh: wide ? 1.30 : 1.0, sx: 0.15, use: 0.58 };   // straight on: the pieces fill most of the height, with room above for the pour
   return [
     { p: 0.00, az: 0.00, el: 0.05, t: [0.26, 0.375, 0], fw: 0.62, fh: 0.84, sx: 0, use: 0.80 },
-    { p: 0.07, az: 0.60, el: 0.13, t: [0.26, 0.375, 0], fw: 0.70, fh: 0.92, sx: 0.19, use: 0.48 },
-    { p: 0.18, az: 0.35, el: 0.10, t: [0.26, 0.375, 0], fw: 0.68, fh: 0.90, sx: 0.19, use: 0.48 },
-    { p: 0.29, az: 0.15, el: 0.22, t: [0, 0.40, 0], fw: 1.22, fh: 0.98, sx: 0.17, use: 0.58 },
-    { p: 0.41, az: slabAz, el: 0.92, t: [0, 0.78, 0], fw: wide ? 2.35 : 1.45, fh: wide ? 1.30 : 1.85, sx: wide ? 0.21 : 0.13, use: 0.55 },
-    { p: 0.62, az: slabAz * 0.55, el: 1.02, t: [0, 0.80, 0], fw: 1.34, fh: 1.22, sx: 0.15, use: 0.60 },
-    { p: 0.775, az: -0.15, el: 1.12, t: [0, 0.80, 0], fw: 1.26, fh: 1.16, sx: 0.15, use: 0.60 },
-    { p: 0.88, az: -0.35, el: 0.42, t: [0, 0.45, 0], fw: 1.28, fh: 1.05, sx: 0.15, use: 0.60 },
-    { p: 0.965, az: -Math.PI / 4, el: 1.45, t: [0, 0.79, 0], fw: 1.26, fh: 1.26, sx: 0.15, use: 0.62 },
+    { p: 0.055, az: 0.60, el: 0.13, t: [0.26, 0.375, 0], fw: 0.70, fh: 0.92, sx: 0.19, use: 0.48 },
+    { p: 0.14, az: 0.35, el: 0.10, t: [0.26, 0.375, 0], fw: 0.68, fh: 0.90, sx: 0.19, use: 0.48 },
+    { p: 0.225, az: 0.15, el: 0.22, t: [0, 0.40, 0], fw: 1.22, fh: 0.98, sx: 0.17, use: 0.58 },
+    Object.assign({ p: 0.31, az: slabAz, el: 0.92 }, slab),
+    Object.assign({ p: 0.45, az: slabAz, el: 1.0 }, slab),
+    Object.assign({ p: 0.535 }, face),
+    Object.assign({ p: 0.715 }, face),
+    { p: 0.81, az: -Math.PI / 4 + 0.2, el: 1.22, t: [0, 0.79, 0], fw: 1.55, fh: 1.4, sx: 0.15, use: 0.60 },
+    { p: 0.895, az: -0.35, el: 0.42, t: [0, 0.45, 0], fw: 1.28, fh: 1.05, sx: 0.15, use: 0.60 },
+    { p: 0.975, az: -Math.PI / 4, el: 1.45, t: [0, 0.79, 0], fw: 1.26, fh: 1.26, sx: 0.15, use: 0.62 },
   ];
 }
 function keyAt(K, p) {
@@ -236,12 +240,12 @@ async function start(canvas) {
     t.anisotropy = gl.capabilities.getMaxAnisotropy();
     return t;
   };
-  const [data, topMap, topRough, topFlow, slabA, slabB, ...legMaps] = await Promise.all([
+  const [data, topMap, topRough, topFlow, slabA, slabB, layFin, layMask, ...legMaps] = await Promise.all([
     fetch(base + "leg.json" + v).then(r => r.json()),
-    tex("top.jpg"), tex("top-rough.jpg", false), tex("top-flow.png", false), tex("slab-a.jpg"), tex("slab-b.jpg"),
+    tex("top.jpg"), tex("top-rough.jpg", false), tex("top-flow.png", false), tex("slab-a.jpg"), tex("slab-b.jpg"), tex("layout-fin.jpg"), tex("layout-mask.png", false),
     tex("leg1.jpg"), tex("leg2.jpg"), tex("leg3.jpg"), tex("leg4.jpg"),
   ]);
-  topFlow.generateMipmaps = false; topFlow.minFilter = THREE.LinearFilter; topFlow.anisotropy = 1;
+  for (const t of [topFlow, layMask]) { t.generateMipmaps = false; t.minFilter = THREE.LinearFilter; t.anisotropy = 1; }
 
   const scene = new THREE.Scene();
   const pm = new THREE.PMREMGenerator(gl);
@@ -289,8 +293,8 @@ async function start(canvas) {
     LP.mesh.instanceColor.needsUpdate = true; legs[0].g.add(LP.mesh);
   }
 
-  // ---- the top, with the gap, the knot and the hole open until the pour reaches them
-  const pour = { value: 0 }, clock = { value: 0 }, landU = { value: new THREE.Vector3() };
+  // ---- the round top (the finished table): filled, with the water touch
+  const pour = { value: 1.01 }, clock = { value: 0 }, landU = { value: new THREE.Vector3() };
   const rips = { value: Array.from({ length: 8 }, () => new THREE.Vector4(0, 0, -99, 0)) };     // x, y, start time, strength
   const topMat = wood(topMap, { roughnessMap: topRough, roughness: 1, clearcoat: 0.05, envMapIntensity: 0.2 });
   topMat.onBeforeCompile = sh => {
@@ -298,7 +302,7 @@ async function start(canvas) {
     sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying vec3 vObj; varying vec3 vTx; varying vec3 vTy;")
       .replace("#include <begin_vertex>", "#include <begin_vertex>\nvObj = position; vTx = normalMatrix * vec3(1.0, 0.0, 0.0); vTy = normalMatrix * vec3(0.0, 1.0, 0.0);");
     sh.fragmentShader = sh.fragmentShader.replace("#include <common>", `#include <common>
-      uniform sampler2D uFlow; uniform float uPour; uniform float uTime; uniform vec3 uLand; uniform vec4 uRip[8];
+      uniform float uTime; uniform vec4 uRip[8];
       varying vec3 vObj; varying vec3 vTx; varying vec3 vTy;
       vec2 touch(vec2 p) {                                    // rings spreading from where the pointer touched
         vec2 g = vec2(0.0);
@@ -310,95 +314,199 @@ async function start(canvas) {
           }
         }
         return g;
-      }
-      vec2 landing(vec2 p) {                                  // steady small rings where the stream lands
-        vec2 d = p - uLand.xy; float dist = length(d) + 1e-4;
-        return d / dist * sin(dist * 150.0 - uTime * 10.0) * exp(-dist * 13.0) * uLand.z;
       }`)
-      .replace("#include <map_fragment>", `vec4 fl = texture2D(uFlow, vMapUv);
-        if (fl.r > 0.5 && fl.g > uPour) discard;
-        vec2 rip = touch(vObj.xy) + landing(vObj.xy) * fl.r;
+      .replace("#include <map_fragment>", `vec2 rip = touch(vObj.xy);
         #ifdef USE_MAP
           diffuseColor *= texture2D(map, vMapUv + rip * 0.006);
-        #endif
-        float front = fl.r * smoothstep(0.05, 0.0, uPour - fl.g) * step(0.001, uPour) * step(uPour, 0.999);
-        diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.30, 0.17, 0.10), front * 0.85);`)
+        #endif`)
       .replace("#include <normal_fragment_maps>", "#include <normal_fragment_maps>\nnormal = normalize(normal + (vTx * rip.x + vTy * rip.y) * 0.95);");
   };
   const topG = new THREE.Group(); zup.add(topG);
-  const topMesh = new THREE.Mesh(topParts().geometry, topMat); topG.add(topMesh);
+  const topMesh = new THREE.Mesh(topParts().geometry, topMat); topMesh.visible = false; topG.add(topMesh);
 
-  // the mould under the top for the pour: a pale board, so the open gap and the black epoxy read apart
-  const form = new THREE.Mesh(new THREE.BoxGeometry(1.24, 1.24, 0.018), new THREE.MeshStandardMaterial({ color: 0x57493d, roughness: 0.8, envMapIntensity: 0.3 }));
-  form.visible = false; zup.add(form);
-
-  // the pour comes out of a pail, drawn in line like the first leg, and falls as a glossy black stream
-  const POUR_H = 0.40, pourG = new THREE.Group(); pourG.visible = false; zup.add(pourG);
-  const pail = (() => {
-    const ax = new THREE.Vector3(Math.cos(-0.42), 0, Math.sin(-0.42)), up = new THREE.Vector3(0, 0, 1);       // the opening looks sideways and a little down
-    const u = new THREE.Vector3().crossVectors(ax, up).normalize(), w = new THREE.Vector3().crossVectors(u, ax).normalize();
-    const Rr = 0.085, Rb = 0.062, depth = 0.17, N = 40, lip = w.clone().multiplyScalar(-Rr), seg = [];
-    const pt = (R, back, a) => u.clone().multiplyScalar(R * Math.cos(a)).addScaledVector(w, R * Math.sin(a)).addScaledVector(ax, -back).sub(lip);
-    for (let i = 0; i < N; i++) {
-      const a = 2 * Math.PI * i / N, b = 2 * Math.PI * (i + 1) / N;
-      seg.push(...pt(Rr, 0, a).toArray(), ...pt(Rr, 0, b).toArray(), ...pt(Rb, depth, a).toArray(), ...pt(Rb, depth, b).toArray());
-      if (i % 5 === 0) seg.push(...pt(Rr, 0, a).toArray(), ...pt(Rb, depth, a).toArray());
-    }
-    const l = lines(seg, 1.5); l.position.z = POUR_H; pourG.add(l); return l;
-  })();
-  const streamGeo = new THREE.CylinderGeometry(0.0075, 0.0045, 1, 12, 1, true); streamGeo.rotateX(Math.PI / 2); streamGeo.translate(0, 0, -0.5);   // hangs down from its top end
-  const stream = new THREE.Mesh(streamGeo, new THREE.MeshPhysicalMaterial({ color: 0x0b0806, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.6 }));
-  stream.position.z = POUR_H; pourG.add(stream);
-  const pourPath = data.pour, landAt = new THREE.Vector3();
-  function pourPoint(v) {
-    const f = clamp(v) * (pourPath.length - 1), i = Math.min(pourPath.length - 2, Math.floor(f)), t = smooth(f - i);
-    return landAt.set(mix(pourPath[i][0], pourPath[i + 1][0], t), mix(pourPath[i][1], pourPath[i + 1][1], t), LEG_H + TOP_T);
-  }
-
-  // ---- the two raw slabs, lying side by side at the height of the top
-  const SLAB_T = 0.055, SLAB_Z = LEG_H - 0.012, SLAB_X = 0.375;
-  const gone = { value: 0 };
+  // ---- the two raw slabs: sawn where they really were (25 Oct), offcuts lifted away, the two pieces laid for the pour
+  // Layout frame (slabs/pieces.py): mm, x to the right, y down from piece A's top cut; the circle's centre is (cx, cy).
+  const LY = data.layout, SLAB_T = 0.055, PIECE_TOP = LEG_H + TOP_T - 0.002, SLAB_Z = PIECE_TOP - SLAB_T, SLAB_X = 0.375;
+  const lineMats = [legLines.material];
   const slabsG = new THREE.Group(); zup.add(slabsG);
-  const slabs = [[data.slabs.A, slabA, -SLAB_X], [data.slabs.B, slabB, SLAB_X]].map(([o, map, x]) => {
-    const part = slabParts(o, SLAB_T);
-    const mat = new THREE.MeshStandardMaterial({ map, roughness: 0.86, envMapIntensity: 0.45 });
-    mat.onBeforeCompile = sh => {
-      sh.uniforms.uGone = gone;
-      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uGone;")
-        .replace("#include <map_fragment>", `#include <map_fragment>
-          vec2 cell = floor(vMapUv * vec2(48.0, 134.0));
-          float late = 0.6 * (1.0 - vMapUv.y) + 0.4 * fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
-          if (uGone > late * 0.5 + 0.004) discard;`);
+  const capMat = new THREE.MeshStandardMaterial({ color: 0x8a6248, roughness: 0.8, side: THREE.DoubleSide });
+  const slabs = [["A", slabA, -SLAB_X, 0, 0], ["B", slabB, SLAB_X, LY.ox, LY.off]].map(([n, map, x0, dx, dy]) => {
+    const o = data.slabs[n], part = slabParts(o, SLAB_T), [ra, rb] = LY.cuts[n].rows, st = LY.piece / (rb - ra);
+    const mk = (lo, hi) => {                                    // one stretch of the slab between two rows of its picture
+      const u = { lo: { value: 1 - hi / o.h }, hi: { value: 1 - lo / o.h }, gone: { value: 0 } };
+      const mat = new THREE.MeshStandardMaterial({ map, roughness: 0.86, envMapIntensity: 0.45 });
+      mat.onBeforeCompile = sh => {
+        Object.assign(sh.uniforms, { uLo: u.lo, uHi: u.hi, uGone: u.gone });
+        sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uLo; uniform float uHi; uniform float uGone;")
+          .replace("#include <map_fragment>", `if (vMapUv.y < uLo || vMapUv.y > uHi) discard;
+            if (uGone > 0.0) { vec2 cell = floor(vMapUv * vec2(40.0, 112.0)); if (uGone > 0.15 + 0.85 * fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453)) discard; }
+            #include <map_fragment>`);
+      };
+      const g = new THREE.Group(); g.add(new THREE.Mesh(part.geometry, mat)); g.position.set(x0, 0, 0); slabsG.add(g);
+      return { g, u };
     };
-    const mesh = new THREE.Mesh(part.geometry, mat); mesh.position.set(x, 0, 0); slabsG.add(mesh);
-    return { outline: part.outline, bb: bounds(part.outline), x, o, pix: sampler(map.image, 190, 532) };
+    const cap = (g, i) => {                                     // the fresh sawn face at a cut
+      const [l, r] = LY.cuts[n].x[i], row = LY.cuts[n].rows[i], w = (r - l) / 1000;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, SLAB_T), capMat); m.rotation.x = Math.PI / 2;
+      m.position.set(((l + r) / 2 - o.w / 2) / 1000, (o.h / 2 - row) / 1000, SLAB_T / 2); g.add(m);
+    };
+    const piece = mk(ra, rb), offs = [mk(-1, ra), mk(rb, o.h + 1)];
+    cap(piece.g, 0); cap(piece.g, 1); cap(offs[0].g, 0); cap(offs[1].g, 1);
+    const saws = [0, 1].map(i => {                              // the saw line across the slab at each cut
+      const [l, r] = LY.cuts[n].x[i], row = LY.cuts[n].rows[i], len = (r - l + 50) / 1000;
+      const g = new THREE.Group(), ln = lines([0, 0, 0, len, 0, 0], 2.6); lineMats.push(ln.material);
+      g.position.set(x0 + (l - 25 - o.w / 2) / 1000, (o.h / 2 - row) / 1000, SLAB_T + 0.004); g.add(ln); slabsG.add(g);
+      return { g, ln, y: (o.h / 2 - row) / 1000, x: x0 + (l - o.w / 2) / 1000, w: (r - l) / 1000 };
+    });
+    // where the piece goes for the pour: its rows stretched to 1270 mm, placed in the layout
+    const to = { x: (o.w / 2 + dx - LY.cx) / 1000, y: (LY.cy - dy + ra * st - st * o.h / 2) / 1000, s: st };
+    return { n, o, x0, outline: part.outline, bb: bounds(part.outline), pix: sampler(map.image, 190, 532), piece, offs, saws, rows: [ra, rb], to };
   });
 
-  // the pieces that leave the slabs and gather into the two halves of the top (positions in the table's frame)
-  const TP = pieces(small ? 3200 : 7600, { spread: 0.5, melt: 0.94, tumble: 4, fromNothing: false, recolour: true });
+  // sawdust at the cuts, and the offcuts breaking into pieces as they lift away
+  const tan = [0.50, 0.33, 0.20];
+  const DUST = pieces(small ? 260 : 520, { spread: 0.8, melt: 2, tumble: 6, fromNothing: true, recolour: false, dust: true });
   {
-    const topPix = sampler(topMap.image, 550, 550), flowPix = sampler(topFlow.image, 550, 550);
-    const q = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1), c = [0, 0, 0], RT = TOP_R - 0.006;
-    for (let i = 0; i < TP.n; i++) {
-      const i3 = i * 3; let x, y;
-      for (;;) {
-        const a = Math.random() * 6.283, r = RT * Math.sqrt(Math.random()); x = r * Math.cos(a); y = r * Math.sin(a);
-        if (flowPix(x / (2 * TOP_R) + 0.5, y / (2 * TOP_R) + 0.5, c, 0, true)[0] < 0.4) break;      // not where the resin goes
-      }
-      TP.B.set([x, y, LEG_H + TOP_T + 0.0015], i3);
-      const s = slabs[x < 0 ? 0 : 1], [sx, sy] = pointIn(s.outline, s.bb);
-      TP.A.set([s.x + sx, sy, SLAB_Z + SLAB_T + 0.0015], i3);
-      const a2 = Math.random() * 6.283, r2 = 0.25 + Math.random() * 0.75;
-      TP.M.set([r2 * Math.cos(a2), r2 * Math.sin(a2) * 1.3, LEG_H + 0.35 + Math.random() * 0.75], i3);
-      TP.size.set([0.011 + Math.random() * 0.012, 0.022 + Math.random() * 0.03, 0.002 + Math.random() * 0.004], i3);
-      setQ(TP.qA, i, q.setFromAxisAngle(zAxis, (Math.random() - 0.5) * 0.7)); setQ(TP.qB, i, q.setFromAxisAngle(zAxis, (Math.random() - 0.5) * 0.6));
-      randomQ(q); TP.axis.set([q.x, q.y, q.z].map(v => v / (Math.hypot(q.x, q.y, q.z) || 1)), i3);
-      TP.phase[i] = Math.random(); TP.delay[i] = 0.6 * (1 - (sy * 1000 / s.o.h + 0.5)) + 0.4 * Math.random();
-      s.pix(sx * 1000 / s.o.w + 0.5, sy * 1000 / s.o.h + 0.5, c); TP.cA.set(c, i3);
-      topPix(x / (2 * TOP_R) + 0.5, y / (2 * TOP_R) + 0.5, c); TP.cB.set(c, i3);
+    const q = new THREE.Quaternion();
+    for (let i = 0; i < DUST.n; i++) {
+      const i3 = i * 3, c = i % 4, s = slabs[c >> 1], saw = s.saws[c & 1], f = Math.random();
+      const ax = saw.x + f * saw.w, ay = saw.y + (Math.random() - 0.5) * 0.01, az = SLAB_T + 0.004;
+      DUST.A.set([ax, ay, az], i3);
+      DUST.M.set([ax + (Math.random() - 0.5) * 0.10, ay + (Math.random() - 0.5) * 0.22, az + 0.10 + Math.random() * 0.22], i3);
+      DUST.B.set([ax + (Math.random() - 0.5) * 0.22, ay + (Math.random() - 0.5) * 0.5, az + 0.02 + Math.random() * 0.10], i3);
+      DUST.size.set([0.004 + Math.random() * 0.006, 0.006 + Math.random() * 0.012, 0.0012 + Math.random() * 0.002], i3);
+      setQ(DUST.qA, i, randomQ(q)); setQ(DUST.qB, i, randomQ(q));
+      randomQ(q); DUST.axis.set([q.x, q.y, q.z].map(v => v / (Math.hypot(q.x, q.y, q.z) || 1)), i3);
+      DUST.phase[i] = Math.random(); DUST.delay[i] = clamp((0.10 + c * 0.11 + f * 0.36) / 0.8, 0, 0.999);
+      const k = 0.7 + Math.random() * 0.6; DUST.mesh.instanceColor.array.set([tan[0] * k, tan[1] * k, tan[2] * k], i3);
     }
-    TP.mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(TP.n * 3), 3); TP.mesh.instanceColor.setUsage(THREE.DynamicDrawUsage);
-    zup.add(TP.mesh);
+    DUST.mesh.instanceColor.needsUpdate = true; slabsG.add(DUST.mesh);
+  }
+  const OFF = pieces(small ? 1200 : 2800, { spread: 0.55, melt: 2, tumble: 5, fromNothing: false, recolour: false, dust: true });
+  {
+    const q = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1), c = [0, 0, 0];
+    for (let i = 0; i < OFF.n; i++) {
+      const i3 = i * 3; let s, sx, sy, row;
+      for (;;) { s = slabs[Math.random() < 0.52 ? 0 : 1]; [sx, sy] = pointIn(s.outline, s.bb); row = s.o.h / 2 - sy * 1000; if (row < s.rows[0] || row > s.rows[1]) break; }
+      const ax = s.x0 + sx, az = SLAB_T + 0.002;
+      OFF.A.set([ax, sy, az], i3);
+      OFF.M.set([ax + (Math.random() - 0.5) * 0.3, sy + (Math.random() - 0.5) * 0.3, az + 0.35 + Math.random() * 0.4], i3);
+      OFF.B.set([ax + (Math.random() - 0.5) * 0.9, sy + (Math.random() - 0.5) * 0.9, az + 1.0 + Math.random() * 0.9], i3);
+      OFF.size.set([0.012 + Math.random() * 0.014, 0.024 + Math.random() * 0.034, 0.003 + Math.random() * 0.005], i3);
+      setQ(OFF.qA, i, q.setFromAxisAngle(zAxis, (Math.random() - 0.5) * 0.7)); setQ(OFF.qB, i, randomQ(q));
+      randomQ(q); OFF.axis.set([q.x, q.y, q.z].map(v => v / (Math.hypot(q.x, q.y, q.z) || 1)), i3);
+      OFF.phase[i] = Math.random(); OFF.delay[i] = Math.random();
+      s.pix(sx * 1000 / s.o.w + 0.5, sy * 1000 / s.o.h + 0.5, c); OFF.mesh.instanceColor.array.set(c, i3);
+    }
+    OFF.mesh.instanceColor.needsUpdate = true; slabsG.add(OFF.mesh);
+  }
+
+  // the mould under the pieces: a wide matte board, so the open gap and the dark epoxy read apart
+  const form = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.72, 0.018), new THREE.MeshStandardMaterial({ color: 0x4d4037, roughness: 0.9, envMapIntensity: 0.25 }));
+  form.visible = false; zup.add(form);
+
+  // ---- the pour, seen straight on: a dark matte liquid runs in from the top of the page, down the gap, and fills it from the bottom up
+  const riverTex = (() => {
+    const r = LY.river, n = r.c.length, d = new Uint8Array(n * 4);
+    for (let i = 0; i < n; i++) { d[i * 4] = clamp(Math.round(r.c[i] - 560), 0, 255); d[i * 4 + 1] = clamp(Math.round(r.hw[i] * 4), 0, 255); d[i * 4 + 3] = 255; }
+    const t = new THREE.DataTexture(d, n, 1, THREE.RGBAFormat); t.minFilter = t.magFilter = THREE.LinearFilter; t.needsUpdate = true; return t;
+  })();
+  const liq = { uMask: { value: layMask }, uRiver: { value: riverTex }, uHead: { value: 2 }, uLevel: { value: 0 }, uFlow: { value: 1 }, uTime: clock, uRip: rips,
+    uC: { value: new THREE.Vector4(LY.cx, LY.cy, LY.size, LY.river.y0) }, uOff: { value: new THREE.Vector2(0, 0.5) } };
+  const liquid = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 2.6), new THREE.ShaderMaterial({
+    uniforms: liq, transparent: false,
+    vertexShader: "uniform vec2 uOff; varying vec2 vP; void main() { vP = position.xy + uOff; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+    fragmentShader: `
+      uniform sampler2D uMask; uniform sampler2D uRiver; uniform float uHead; uniform float uLevel; uniform float uFlow; uniform float uTime; uniform vec4 uC; uniform vec4 uRip[8];
+      varying vec2 vP;
+      void main() {
+        float Yl = uC.y - vP.y * 1000.0;                                       // mm down from piece A's top cut
+        vec2 uv = vec2((vP.x * 1000.0 + uC.x) / uC.z, 1.0 - Yl / uC.z);
+        float inMap = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
+        float resin = inMap * texture2D(uMask, uv).r;
+        vec2 rv = texture2D(uRiver, vec2(clamp((Yl - uC.w) / 1140.0, 0.002, 0.998), 0.5)).rg;
+        float cx = (560.0 + rv.r * 255.0 - uC.x) / 1000.0, hw = rv.g * 255.0 / 4000.0;
+        float settle = 1.0 - smoothstep(0.96, 1.0, uLevel);
+        float surf = mix(-0.60, 0.60, uLevel) + (sin(vP.x * 46.0 + uTime * 2.6) * 0.0035 + sin(vP.x * 19.0 - uTime * 1.7) * 0.003) * settle;
+        float filled = step(0.5, resin) * step(vP.y, surf);
+        // the flow: a wide sheet from the top of the page that funnels into the gap, then runs down it
+        float up = smoothstep(0.60, 1.04, vP.y);
+        float wide = mix(min(hw * 0.9, 0.03), 0.84, pow(up, 1.7)) * (1.0 + 0.05 * sin(vP.y * 8.0 - uTime * 3.0) * up);
+        float sw = (vP.y > 0.60 ? wide : min(hw * 0.9, 0.03 + 0.004 * sin(vP.y * 31.0 + uTime * 9.0))) * uFlow;
+        float sx = cx + 0.004 * sin(vP.y * 23.0 - uTime * 7.0) * (1.0 - up);
+        float off = abs(vP.x - sx) / max(sw, 1e-4);
+        float head = max(surf - 0.004, uHead + 0.03 * sin(vP.x * 14.0 + uTime * 2.0) * up);
+        float stream = (1.0 - smoothstep(0.86, 1.0, off)) * step(head, vP.y) * step(0.002, sw);
+        if (max(filled, stream) < 0.5) discard;
+        vec3 col = vec3(0.020, 0.017, 0.015);
+        float lip = filled * smoothstep(0.024, 0.0, surf - vP.y) * settle;                // the lighter edge of the rising surface
+        col += vec3(0.13, 0.10, 0.075) * lip;
+        float run = (1.0 - filled) * stream;
+        float streak = 0.5 + 0.5 * sin(vP.x * 130.0 + sin(vP.y * 6.0 + uTime * 2.4) * 2.2);          // the liquid's own slow streaks
+        col = mix(col, vec3(0.040, 0.032, 0.027) + vec3(0.030, 0.023, 0.018) * streak, run);
+        col = mix(col, vec3(0.11, 0.085, 0.066), run * smoothstep(0.55, 1.0, off));             // a soft lighter edge: it reads as a body of liquid
+        float t = 0.0;
+        for (int i = 0; i < 8; i++) {
+          float age = uTime - uRip[i].z;
+          if (uRip[i].w > 0.0 && age > 0.0 && age < 2.6) { float d = length(vP - uRip[i].xy), q = (d - age * 0.30) / 0.03; t += sin((d - age * 0.30) * 105.0) * exp(-q * q) * exp(-age * 1.4); }
+        }
+        col += vec3(0.05, 0.04, 0.03) * t * filled;
+        gl_FragColor = vec4(col, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }` }));
+  liquid.position.set(0, 0.5, PIECE_TOP + 0.0012); liquid.visible = false; zup.add(liquid);
+
+  // ---- after the pour: flattened and sanded (the raw wood turns into the finished look), then the circle is cut
+  const finU = { wipe: { value: 0 }, side: { value: 0 }, gone: { value: 0 } };
+  const finMat = side => {
+    const m = wood(layFin, { roughness: 0.5, clearcoat: 0.05, envMapIntensity: 0.2 });
+    m.onBeforeCompile = sh => {
+      Object.assign(sh.uniforms, { uMask: { value: layMask }, uWipe: finU.wipe, uSide: { value: side }, uGone: side < 0 ? finU.gone : { value: 0 },
+        uC: { value: new THREE.Vector3(LY.cx / LY.size, 1 - LY.cy / LY.size, 550 / LY.size) } });
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform sampler2D uMask; uniform float uWipe; uniform float uSide; uniform float uGone; uniform vec3 uC;")
+        .replace("#include <map_fragment>", `if (texture2D(uMask, vMapUv).g < 0.5) discard;
+          float rr = length(vMapUv - uC.xy);
+          if (uSide > 0.5 && rr > uC.z) discard;
+          if (uSide < -0.5 && rr <= uC.z) discard;
+          float edge = 1.0 - vMapUv.y, front = uWipe * 1.1 - edge;
+          if (front < 0.0) discard;
+          if (uGone > 0.0) { vec2 cell = floor(vMapUv * vec2(70.0, 70.0)); if (uGone > 0.1 + 0.9 * fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453)) discard; }
+          #include <map_fragment>
+          diffuseColor.rgb += vec3(0.55, 0.32, 0.18) * smoothstep(0.03, 0.0, front) * step(uWipe, 0.999);`);
+    };
+    return m;
+  };
+  const finGeo = new THREE.PlaneGeometry(LY.size / 1000, LY.size / 1000);
+  const finPos = [(LY.size / 2 - LY.cx) / 1000, (LY.cy - LY.size / 2) / 1000];
+  const finIn = new THREE.Mesh(finGeo, finMat(0)), finOut = new THREE.Mesh(finGeo, finMat(-1));
+  for (const m of [finIn, finOut]) { m.position.set(finPos[0], finPos[1], LEG_H + TOP_T); m.visible = false; zup.add(m); }
+  const ring = (() => {                                         // the cut line of the circle
+    const N = 160, seg = [];
+    for (let i = 0; i < N; i++) { const a = Math.PI / 2 - 2 * Math.PI * i / N, b = Math.PI / 2 - 2 * Math.PI * (i + 1) / N; seg.push(TOP_R * Math.cos(a), TOP_R * Math.sin(a), 0, TOP_R * Math.cos(b), TOP_R * Math.sin(b), 0); }
+    const l = lines(seg, 2.6); l.position.z = LEG_H + TOP_T + 0.003; l.visible = false; l.userData.n = N; lineMats.push(l.material); zup.add(l); return l;
+  })();
+  const WASTE = pieces(small ? 700 : 1600, { spread: 0.5, melt: 2, tumble: 5, fromNothing: false, recolour: false, dust: true });
+  {
+    const maskPix = sampler(layMask.image, 350, 350), finPix = sampler(layFin.image, 350, 350);
+    const q = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1), c = [0, 0, 0];
+    for (let i = 0; i < WASTE.n; i++) {
+      const i3 = i * 3; let u, v, x, y;
+      for (;;) {
+        u = Math.random(); v = Math.random(); x = (u * LY.size - LY.cx) / 1000; y = (LY.cy - (1 - v) * LY.size) / 1000;
+        if (x * x + y * y > TOP_R * TOP_R && maskPix(u, v, c, 0, true)[1] > 0.5) break;
+      }
+      const z = LEG_H + TOP_T + 0.002;
+      WASTE.A.set([x, y, z], i3);
+      WASTE.M.set([x * 1.25 + (Math.random() - 0.5) * 0.2, y * 1.25 + (Math.random() - 0.5) * 0.2, z + 0.25 + Math.random() * 0.35], i3);
+      WASTE.B.set([x * 1.7 + (Math.random() - 0.5) * 0.6, y * 1.7 + (Math.random() - 0.5) * 0.6, z + 0.8 + Math.random() * 0.8], i3);
+      WASTE.size.set([0.012 + Math.random() * 0.014, 0.024 + Math.random() * 0.03, 0.003 + Math.random() * 0.004], i3);
+      setQ(WASTE.qA, i, q.setFromAxisAngle(zAxis, (Math.random() - 0.5) * 0.7)); setQ(WASTE.qB, i, randomQ(q));
+      randomQ(q); WASTE.axis.set([q.x, q.y, q.z].map(w => w / (Math.hypot(q.x, q.y, q.z) || 1)), i3);
+      WASTE.phase[i] = Math.random(); WASTE.delay[i] = Math.random();
+      finPix(u, v, c); WASTE.mesh.instanceColor.array.set(c, i3);
+    }
+    WASTE.mesh.instanceColor.needsUpdate = true; zup.add(WASTE.mesh);
   }
 
   // ---- the page around the canvas
@@ -421,7 +529,7 @@ async function start(canvas) {
   function size() {
     W = stage.clientWidth; H = stage.clientHeight; gl.setSize(W, H, false);
     cam.aspect = W / H; cam.updateProjectionMatrix(); K = keys(W / H > 1.05);
-    legLines.material.resolution.set(W, H); pail.material.resolution.set(W, H);
+    for (const m of lineMats) m.resolution.set(W, H);
   }
   function where() { const r = story.getBoundingClientRect(); p = clamp(-r.top / Math.max(1, r.height - innerHeight)); }
   addEventListener("resize", () => { size(); where(); });
@@ -431,7 +539,7 @@ async function start(canvas) {
   const ray = new THREE.Raycaster(), ndc = new THREE.Vector2(), topPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -(LEG_H + TOP_T)), hit = new THREE.Vector3();
   let ripI = 0, ripAt = [9, 9], ripT = 0;
   function touchTop(e, force) {
-    if (ps < T_POUR[0] - 0.035 || ps > T_BACK[0] + 0.005) return;
+    if (ps < T_POUR[0] || ps > T_LOOK[0]) return;
     const r = canvas.getBoundingClientRect(); ndc.set((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, cam); if (!ray.ray.intersectPlane(topPlane, hit)) return;
     zup.worldToLocal(hit); if (hit.x * hit.x + hit.y * hit.y > TOP_R * TOP_R) return;
@@ -451,7 +559,7 @@ async function start(canvas) {
     mxs += (mx - mxs) * 0.06; mys += (my - mys) * 0.06;
     const k = keyAt(K, ps), wide = W / H > 1.05;
     const tLeg = R(ps, T_LEG), fan = easeOut(R(ps, T_FAN)), away = smooth(R(ps, T_OUT)) - smooth(R(ps, T_BACK));
-    const slabsIn = easeOut(R(ps, T_SLABS)), tTop = R(ps, T_TOP), look = R(ps, T_LOOK);
+    const slabsIn = easeOut(R(ps, T_SLABS)), tc = R(ps, T_CUT), tp = R(ps, T_POUR), tf = R(ps, T_FIN), look = R(ps, T_LOOK);
 
     // the first leg: drawing, then pieces, then solid
     movePieces(LP, tLeg, time);
@@ -463,25 +571,37 @@ async function start(canvas) {
     }
     legsG.visible = away < 0.995; legsG.position.z = -2.6 * away;
 
-    // slabs come down, break into pieces, gather into the top; then the pour
-    slabsG.visible = slabsIn > 0 && tTop < 0.52; slabsG.position.z = SLAB_Z + 2.4 * (1 - slabsIn);
-    gone.value = tTop;
-    movePieces(TP, tTop, time);
-    topMesh.visible = tTop >= 0.9;
-    const pt = R(ps, T_POUR); pour.value = pt * 1.01; clock.value = time * 0.001;
-    const pouring = pt > 0.001 && pt < 0.999 && topMesh.visible;
-    pourG.visible = pouring;
-    if (pouring) {
-      const L = pourPoint(pt + 0.012), start = ramp(pt, 0, 0.035), end = ramp(pt, 0.95, 0.999);
-      pourG.position.set(L.x, L.y, L.z);
-      pail.material.opacity = ramp(pt, 0, 0.02) * (1 - ramp(pt, 0.975, 0.999));
-      pail.rotation.y = Math.sin(time * 0.0016) * 0.035; pail.rotation.z = Math.sin(time * 0.0011) * 0.05;
-      stream.scale.set(1 + Math.sin(time * 0.013) * 0.08, 1 + Math.cos(time * 0.011) * 0.08, POUR_H * start * (1 - end));
-      stream.position.z = POUR_H * (1 - end);
-      landU.value.set(L.x, L.y, start >= 1 ? 1 - end : 0);
-    } else landU.value.z = 0;
-    const formIn = easeOut(ramp(tTop, 0.42, 0.8)), formOut = smooth(ramp(ps, T_POUR[1] + 0.004, T_BACK[0] + 0.035));
-    form.visible = formIn > 0 && formOut < 1; form.position.z = LEG_H - 0.0095 - 1.4 * (1 - formIn) - 2.6 * formOut;
+    // the slabs come down; the saw crosses them; the offcuts lift away in pieces; the two pieces slide into the pour layout
+    const arr = smooth(ramp(tc, 0.62, 1.0)), apart = smooth(ramp(tc, 0.36, 0.5)), lift = ramp(tc, 0.42, 0.86);
+    slabsG.visible = slabsIn > 0 && tf < 0.44; slabsG.position.z = SLAB_Z + 2.4 * (1 - slabsIn);
+    slabs.forEach((s, si) => {
+      s.piece.g.position.set(mix(s.x0, s.to.x, arr), mix(0, s.to.y, arr), 0); s.piece.g.scale.y = mix(1, s.to.s, arr);
+      s.offs.forEach((o, i) => {
+        o.g.visible = lift < 1; o.g.position.set(s.x0, (i ? -1 : 1) * 0.035 * apart, easeOut(lift) * 0.22); o.u.gone.value = ramp(lift, 0.02, 0.62);
+      });
+      s.saws.forEach((w, i) => {
+        const c = si * 2 + i, sweep = ramp(tc, 0.05 + c * 0.055, 0.23 + c * 0.055);
+        w.g.scale.x = Math.max(sweep, 0.0001); w.ln.material.opacity = (sweep > 0 ? 1 : 0) * (1 - ramp(tc, 0.40, 0.50)); w.g.visible = w.ln.material.opacity > 0.01;
+      });
+    });
+    movePieces(DUST, ramp(tc, 0, 0.5), time);
+    movePieces(OFF, ramp(tc, 0.40, 0.92), time);
+    const formIn = easeOut(ramp(tc, 0.55, 0.96)), formOut = smooth(ramp(tf, 0.62, 0.95));
+    form.visible = formIn > 0 && formOut < 1; form.position.set(0, 0, SLAB_Z - 0.0095 - 1.4 * (1 - formIn) - 2.8 * formOut);
+
+    // the pour: the stream runs down from the top of the page, then the gap fills from the bottom up
+    clock.value = time * 0.001;
+    liquid.visible = tp > 0 && tf < 0.44;
+    liq.uHead.value = mix(1.95, -0.63, ramp(tp, 0, 0.2)); liq.uLevel.value = ramp(tp, 0.18, 0.9); liq.uFlow.value = 1 - smooth(ramp(tp, 0.88, 0.99));
+
+    // flattened and sanded, then the circle is cut; what is left outside lifts away in pieces
+    const cut = tf >= 0.66, waste = ramp(tf, 0.66, 1);
+    finU.wipe.value = ramp(tf, 0, 0.42); finU.gone.value = ramp(waste, 0, 0.5);
+    finIn.visible = tf > 0 && !cut; finOut.visible = cut && waste < 0.5; finOut.position.z = LEG_H + TOP_T + easeOut(waste) * 0.15;
+    topMesh.visible = cut;
+    const drawn = ramp(tf, 0.42, 0.66);
+    ring.visible = drawn > 0 && tf < 0.9; ring.geometry.instanceCount = Math.max(1, Math.round(ring.userData.n * drawn)); ring.material.opacity = 1 - ramp(tf, 0.70, 0.9);
+    movePieces(WASTE, ramp(tf, 0.64, 1), time);
 
     const tanF = Math.tan(FOV * Math.PI / 360);
     const dist = Math.max(k.fh / (2 * tanF * (wide ? 0.74 : 0.50)), k.fw / (2 * tanF * cam.aspect * (wide ? k.use : 0.86)));
@@ -529,80 +649,184 @@ async function legViewer(canvas) {
   const gl = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   gl.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
   const data = await fetch(canvas.dataset.base + "leg.json?v=" + canvas.dataset.v).then(r => r.json());
-  const leg = legParts(data.leg);
+  const leg = legParts(data.leg), P = leg.outline, n = P.length;
   const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(24, 1, 0.05, 30);
-  const turn = new THREE.Group(), zup = new THREE.Group(); zup.rotation.x = -Math.PI / 2; turn.add(zup); scene.add(turn);
+  const zup = new THREE.Group(); zup.rotation.x = -Math.PI / 2; scene.add(zup);
   const legG = new THREE.Group(); legG.position.set(-0.255, 0, -0.375); zup.add(legG);        // turn about the middle of the leg
-  const mats = [];
+  const mats = [], INK = 0xf2e8d4, Y = -T / 2;
   const draw = (seg, width, colour, opacity) => { const l = lines(seg, width); l.material.color.set(colour); l.material.opacity = opacity; mats.push(l.material); return l; };
-  legG.add(draw(leg.segments, 2, LINE, 1));
-  legG.add(draw([0, 0, -0.05, 0, 0, 0.84], 1, LINE, 0.35));                                     // the table's axis
-  const Y = -T / 2, INK = 0xf2e8d4, items = [];
+  const label = cls => { const el = document.createElement("span"); el.className = "lv-n " + cls; labels.appendChild(el); return el; };
+
+  // always there: the leg itself (a faint body and its outline, which draws itself in), and the table's axis
+  const body = new THREE.Mesh(leg.geometry, new THREE.MeshBasicMaterial({ color: LINE, transparent: true, opacity: 0.07, depthWrite: false, side: THREE.DoubleSide })); legG.add(body);
+  const outline = draw(leg.segments, 2, LINE, 1); legG.add(outline); const outlineN = leg.segments.length / 6;
+  legG.add(draw([0, 0, -0.06, 0, 0, 0.86], 1, LINE, 0.35));
+  { const tick = [];                                             // a height scale on the axis, every 50 mm
+    for (let h = 0; h <= 750; h += 50) { const w = h % 250 === 0 ? 0.022 : 0.010; tick.push(-w, 0, h / 1000, 0, 0, h / 1000); }
+    legG.add(draw(tick, 1, LINE, 0.5)); }
+
+  // ---- numbers that come from the outline itself
+  let area = 0; for (let i = 0; i < n; i++) { const a = P[i], b = P[(i + 1) % n]; area += a[0] * b[1] - b[0] * a[1]; } area = Math.abs(area) / 2;
+  const tangent = i => { const a = P[(i + n - 1) % n], b = P[(i + 1) % n], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1; return [(b[0] - a[0]) / l, (b[1] - a[1]) / l]; };
+  const corner = P.map((p, i) => { const a = P[(i + n - 1) % n], b = P[(i + 1) % n], u = [p[0] - a[0], p[1] - a[1]], w = [b[0] - p[0], b[1] - p[1]];
+    return Math.abs(Math.atan2(u[0] * w[1] - u[1] * w[0], u[0] * w[0] + u[1] * w[1])) > 0.45; });
+  const raw = P.map((p, i) => {                                  // how tightly the outline bends at each point (1 / radius, per metre)
+    const a = P[(i + n - 1) % n], c = P[(i + 1) % n], ab = Math.hypot(p[0] - a[0], p[1] - a[1]), bc = Math.hypot(c[0] - p[0], c[1] - p[1]), ca = Math.hypot(a[0] - c[0], a[1] - c[1]);
+    const cr = (p[0] - a[0]) * (c[1] - a[1]) - (p[1] - a[1]) * (c[0] - a[0]);
+    return corner[i] || ab * bc * ca < 1e-12 ? 0 : 2 * cr / (ab * bc * ca);
+  });
+  const kap = raw.map((_, i) => { let s = 0, m = 0; for (let j = -2; j <= 2; j++) { const q = (i + j + n) % n; if (!corner[q]) { s += raw[q]; m++; } } return corner[i] || !m ? 0 : s / m; });
+
+  // ---- layer 1: the dimensions
+  const items = [], dimsG = new THREE.Group(); legG.add(dimsG);
   for (const d of DIMS) {
     const seg = [], g = new THREE.Group(); let pivot, at;
     if (d.kind === "lin") {
       const a2 = [d.a[0] + d.off[0], d.a[1] + d.off[1]], b2 = [d.b[0] + d.off[0], d.b[1] + d.off[1]];
-      if (d.axis === "h") a2[0] = b2[0] = Math.max(a2[0], b2[0]) * (d.off[0] > 0 ? 1 : 0) + (d.off[0] > 0 ? 0 : Math.min(a2[0], b2[0]));
+      if (d.axis === "h") a2[0] = b2[0] = d.off[0] > 0 ? Math.max(a2[0], b2[0]) : Math.min(a2[0], b2[0]);
       else a2[1] = b2[1] = d.off[1] > 0 ? Math.max(a2[1], b2[1]) : Math.min(a2[1], b2[1]);
       pivot = [(a2[0] + b2[0]) / 2, (a2[1] + b2[1]) / 2];
-      const P = (p) => [p[0] - pivot[0], 0, p[1] - pivot[1]], tk = 0.012;
-      const ea = d.ext ? [d.a[0], d.ext[1]] : d.a, eb = d.b;
-      seg.push(...P(a2), ...P(b2), ...P(ea), ...P(a2), ...P(eb), ...P(b2));
-      for (const e of [a2, b2]) seg.push(...P([e[0] - tk, e[1] - tk]), ...P([e[0] + tk, e[1] + tk]));       // slashes at the ends
-      const n = Math.hypot(d.off[0], d.off[1]) || 1; at = [pivot[0] + d.off[0] / n * 0.034, Y, pivot[1] + d.off[1] / n * 0.03];
+      const Q = p => [p[0] - pivot[0], 0, p[1] - pivot[1]], tk = 0.012, ea = d.ext ? [d.a[0], d.ext[1]] : d.a;
+      seg.push(...Q(a2), ...Q(b2), ...Q(ea), ...Q(a2), ...Q(d.b), ...Q(b2));
+      for (const e of [a2, b2]) seg.push(...Q([e[0] - tk, e[1] - tk]), ...Q([e[0] + tk, e[1] + tk]));
+      const m = Math.hypot(d.off[0], d.off[1]) || 1; at = [pivot[0] + d.off[0] / m * 0.034, Y, pivot[1] + d.off[1] / m * 0.03];
     } else if (d.kind === "ang") {
       pivot = d.c; const N = 24;
-      for (let i = 0; i < N; i++) {
-        const t0 = (d.from + (d.to - d.from) * i / N) * Math.PI / 180, t1 = (d.from + (d.to - d.from) * (i + 1) / N) * Math.PI / 180;
-        seg.push(d.rad * Math.cos(t0), 0, d.rad * Math.sin(t0), d.rad * Math.cos(t1), 0, d.rad * Math.sin(t1));
-      }
+      for (let i = 0; i < N; i++) { const t0 = (d.from + (d.to - d.from) * i / N) * Math.PI / 180, t1 = (d.from + (d.to - d.from) * (i + 1) / N) * Math.PI / 180;
+        seg.push(d.rad * Math.cos(t0), 0, d.rad * Math.sin(t0), d.rad * Math.cos(t1), 0, d.rad * Math.sin(t1)); }
       for (const t of [d.from, d.to]) { const a = t * Math.PI / 180; seg.push(0, 0, 0, d.rad * 1.18 * Math.cos(a), 0, d.rad * 1.18 * Math.sin(a)); }
       const mid = (d.from + d.to) / 2 * Math.PI / 180; at = [d.c[0] + d.rad * 1.42 * Math.cos(mid), Y, d.c[1] + d.rad * 1.42 * Math.sin(mid)];
-    } else {                                                   // the thickness, across the leg
+    } else {
       pivot = [d.at[0] + d.off[0], d.at[1] + d.off[1]];
       seg.push(0, -T / 2 - Y, 0, 0, T / 2 - Y, 0, -d.off[0], -T / 2 - Y, -d.off[1], 0, -T / 2 - Y, 0, -d.off[0], T / 2 - Y, -d.off[1], 0, T / 2 - Y, 0);
       at = [pivot[0] + 0.03, 0, pivot[1] + 0.012];
     }
     g.position.set(pivot[0], Y, pivot[1]);
-    const l = draw(seg, 1.2, d.kind === "ang" ? LINE : INK, 0); g.add(l); legG.add(g);
-    const el = document.createElement("span"); el.className = "lv-n" + (d.kind === "ang" ? " ang" : ""); labels.appendChild(el);
-    items.push({ d, g, l, el, at: new THREE.Vector3(...at), shown: -1 });
+    const l = draw(seg, 1.2, d.kind === "ang" ? LINE : INK, 0); g.add(l); dimsG.add(g);
+    items.push({ d, g, l, el: label(d.kind === "ang" ? "ang" : ""), at: new THREE.Vector3(...at), shown: -1 });
   }
 
-  let W = 1, H = 1, az = -0.5, el = 0.1, drag = null, vel = 0, seen = false, prog = 0;
-  function size() {
-    W = box.clientWidth; H = box.clientHeight; gl.setSize(W, H, false); cam.aspect = W / H; cam.updateProjectionMatrix();
-    for (const m of mats) m.resolution.set(W, H);
+  // ---- layer 2: the curves. A comb shows how tightly the outline bends; where a stretch is a true arc, its radius is given
+  const curvesG = new THREE.Group(); legG.add(curvesG);
+  const comb = [], tips = P.map((p, i) => { const t = tangent(i), len = Math.min(Math.abs(kap[i]) * 0.0042, 0.085); return Math.abs(kap[i]) > 0.35 ? [p[0] + t[1] * len, p[1] - t[0] * len] : null; });
+  for (let i = 0; i < n; i++) {
+    const a = tips[i], b = tips[(i + 1) % n];
+    if (a) comb.push(P[i][0], Y, P[i][1], a[0], Y, a[1]);
+    if (a && b) comb.push(a[0], Y, a[1], b[0], Y, b[1]);
   }
+  const combL = draw(comb.length ? comb : [0, 0, 0, 0, 0, 0], 1, LINE, 0); curvesG.add(combL);
+  const arcs = [];
+  for (let i = 0; i < n;) {                                      // stretches that bend one way: fit a circle, keep it if the fit is true to 1.5 mm
+    if (Math.abs(kap[i]) < 1.1) { i++; continue; }
+    let j = i; while (j < n && Math.abs(kap[j]) >= 1.1 && Math.sign(kap[j]) === Math.sign(kap[i])) j++;
+    if (j - i >= 6) {
+      const pts = P.slice(i, j); let sx = 0, sy = 0, sxx = 0, syy = 0, sxy = 0, sz = 0, sxz = 0, syz = 0; const m = pts.length;
+      for (const [x, y] of pts) { const z = x * x + y * y; sx += x; sy += y; sxx += x * x; syy += y * y; sxy += x * y; sz += z; sxz += x * z; syz += y * z; }
+      const A = [[sxx, sxy, sx], [sxy, syy, sy], [sx, sy, m]], B = [-sxz, -syz, -sz];
+      const det = M => M[0][0] * (M[1][1] * M[2][2] - M[1][2] * M[2][1]) - M[0][1] * (M[1][0] * M[2][2] - M[1][2] * M[2][0]) + M[0][2] * (M[1][0] * M[2][1] - M[1][1] * M[2][0]);
+      const D = det(A), col = k => det(A.map((r, ri) => r.map((v, ci) => ci === k ? B[ri] : v)));
+      if (Math.abs(D) > 1e-18) {
+        const a = col(0) / D, b = col(1) / D, c = col(2) / D, cx = -a / 2, cy = -b / 2, R = Math.sqrt(Math.max(cx * cx + cy * cy - c, 0));
+        const rms = Math.sqrt(pts.reduce((t, [x, y]) => t + (Math.hypot(x - cx, y - cy) - R) ** 2, 0) / m);
+        if (rms < 0.0015 && R > 0.02 && R < 0.8) arcs.push({ cx, cy, R, mid: pts[m >> 1], len: m, pts });
+      }
+    }
+    i = j;
+  }
+  arcs.sort((a, b) => b.len - a.len); arcs.length = Math.min(arcs.length, 5);
+  for (const a of arcs) {
+    const seg = [], k = 0.012;
+    seg.push(a.cx - k, Y, a.cy, a.cx + k, Y, a.cy, a.cx, Y, a.cy - k, a.cx, Y, a.cy + k, a.cx, Y, a.cy, a.mid[0], Y, a.mid[1]);
+    for (let i = 0; i < a.pts.length - 1; i++) seg.push(a.pts[i][0], Y - 0.001, a.pts[i][1], a.pts[i + 1][0], Y - 0.001, a.pts[i + 1][1]);
+    a.l = draw(seg, 1.4, INK, 0); curvesG.add(a.l);
+    a.el = label("rad"); a.el.textContent = "R " + Math.round(a.R * 1000);
+    a.at = new THREE.Vector3((a.cx + a.mid[0]) / 2, Y, (a.cy + a.mid[1]) / 2);
+  }
+
+  // ---- layer 3: a cut through the leg that travels up and down, with its height and width
+  const sectG = new THREE.Group(); legG.add(sectG);
+  const sPos = new Float32Array(3 * 24), sGeo = new THREE.BufferGeometry(); sGeo.setAttribute("position", new THREE.BufferAttribute(sPos, 3));
+  const sLine = new THREE.LineSegments(sGeo, new THREE.LineBasicMaterial({ color: INK, transparent: true, opacity: 0 })); sectG.add(sLine);
+  const fPos = new Float32Array(3 * 12), fGeo = new THREE.BufferGeometry(); fGeo.setAttribute("position", new THREE.BufferAttribute(fPos, 3));
+  const sFill = new THREE.Mesh(fGeo, new THREE.MeshBasicMaterial({ color: LINE, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide })); sectG.add(sFill);
+  const plane = draw([-0.05, -0.09, 0, 0.56, -0.09, 0, 0.56, -0.09, 0, 0.56, 0.09, 0, 0.56, 0.09, 0, -0.05, 0.09, 0, -0.05, 0.09, 0, -0.05, -0.09, 0], 1, LINE, 0); sectG.add(plane);
+  const sectEl = label("sect"), sectAt = new THREE.Vector3();
+  function section(h) {
+    const xs = [];
+    for (let i = 0; i < n; i++) { const a = P[i], b = P[(i + 1) % n]; if ((a[1] > h) !== (b[1] > h)) xs.push(a[0] + (h - a[1]) / (b[1] - a[1]) * (b[0] - a[0])); }
+    xs.sort((a, b) => a - b); sPos.fill(0); fPos.fill(0);
+    const spans = [];
+    for (let k = 0; k + 1 < xs.length && k < 4; k += 2) {
+      const x0 = xs[k], x1 = xs[k + 1], q = [[x0, -T / 2], [x1, -T / 2], [x1, T / 2], [x0, T / 2]], o = (k / 2) * 24, f = (k / 2) * 18;
+      for (let e = 0; e < 4; e++) { const p = q[e], r = q[(e + 1) % 4]; sPos.set([p[0], p[1], h, r[0], r[1], h], o + e * 6); }
+      fPos.set([x0, -T / 2, h, x1, -T / 2, h, x1, T / 2, h, x0, -T / 2, h, x1, T / 2, h, x0, T / 2, h], f);
+      spans.push(Math.round((x1 - x0) * 1000));
+    }
+    sGeo.attributes.position.needsUpdate = true; fGeo.attributes.position.needsUpdate = true; plane.position.z = h;
+    sectEl.textContent = "H " + Math.round(h * 1000) + "  W " + spans.join(" + "); sectAt.set(0.59, 0.09, h);
+  }
+
+  // ---- layer 4: where the leg sits: the three other legs and the top, drawn faintly
+  const tableG = new THREE.Group(); legG.add(tableG);
+  for (const a of [Math.PI / 2, Math.PI, -Math.PI / 2]) { const g = new THREE.Group(); g.rotation.z = a; g.add(draw(leg.segments, 1, LINE, 0)); tableG.add(g); }
+  { const ringSeg = [], N = 120;
+    for (const z of [LEG_H, LEG_H + TOP_T]) for (let i = 0; i < N; i++) { const a = 2 * Math.PI * i / N, b = 2 * Math.PI * (i + 1) / N; ringSeg.push(TOP_R * Math.cos(a), TOP_R * Math.sin(a), z, TOP_R * Math.cos(b), TOP_R * Math.sin(b), z); }
+    tableG.add(draw(ringSeg, 1.2, INK, 0)); }
+  const tableLines = []; tableG.traverse(o => { if (o.material) tableLines.push(o); });
+
+  // ---- the panel: facts from the outline, and the four views
+  const set = (k, v) => { const el = box.querySelector(`[data-lv="${k}"]`); if (el) el.textContent = v; };
+  set("pts", n); set("area", (area * 1e4).toFixed(0)); set("vol", (area * T * 1000).toFixed(1)); set("arcs", arcs.length); set("ratio", (0.75 / 0.47).toFixed(2));
+  const MODES = ["measure", "curves", "section", "table"], alpha = { measure: 0, curves: 0, section: 0, table: 0 };
+  const tabs = [...box.querySelectorAll(".lv-tabs button")]; let mode = "measure", auto = true, since = 0;
+  const pick = (m, byHand) => { mode = m; if (byHand) auto = false; tabs.forEach(b => b.setAttribute("aria-pressed", b.dataset.mode === m ? "true" : "false")); };
+  tabs.forEach(b => b.addEventListener("click", () => pick(b.dataset.mode, true)));
+
+  let W = 1, H = 1, az = -0.5, el = 0.1, drag = null, seen = false, prog = 0, zoom = 1, tx = 0, last = 0;
+  function size() { W = box.clientWidth; H = box.clientHeight; gl.setSize(W, H, false); cam.aspect = W / H; cam.updateProjectionMatrix(); for (const m of mats) m.resolution.set(W, H); }
   addEventListener("resize", size); size();
-  canvas.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); box.classList.add("held"); });
+  canvas.addEventListener("pointerdown", e => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); box.classList.add("held"); auto = false; });
   canvas.addEventListener("pointermove", e => {
     if (!drag) return;
-    az = clamp(az - (e.clientX - drag.x) * 0.005, -0.95, 0.95); el = clamp(el + (e.clientY - drag.y) * 0.004, -0.35, 0.7); vel = 0;
-    drag = { x: e.clientX, y: e.clientY };
+    az = clamp(az - (e.clientX - drag.x) * 0.005, -0.95, 0.95); el = clamp(el + (e.clientY - drag.y) * 0.004, -0.35, 0.7); drag = { x: e.clientX, y: e.clientY };
   });
   const drop = () => { drag = null; box.classList.remove("held"); };
   canvas.addEventListener("pointerup", drop); canvas.addEventListener("pointercancel", drop);
   if ("IntersectionObserver" in window) new IntersectionObserver(es => { seen = es[0].isIntersecting; }).observe(box); else seen = true;
 
   const v = new THREE.Vector3();
+  const place = (elm, at, a) => { v.copy(at); legG.localToWorld(v); v.project(cam); elm.style.opacity = a; elm.style.transform = `translate3d(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px, 0) translate(-50%, -50%)`; };
   function frame(time) {
     requestAnimationFrame(frame);
     if (!seen) return;
+    const dt = Math.min(time - last, 100); last = time;
     const r = box.getBoundingClientRect();
     prog += (clamp((innerHeight * 0.92 - r.top) / (innerHeight * 0.75)) - prog) * 0.1;
-    const sway = drag ? 0 : Math.sin(time * 0.0004) * 0.10;
-    const tanF = Math.tan(24 * Math.PI / 360), dist = Math.max(1.02 / (2 * tanF), 0.95 / (2 * tanF * cam.aspect));
-    const a = az + sway;
-    cam.position.set(dist * Math.sin(a) * Math.cos(el), dist * Math.sin(el) + 0.01, dist * Math.cos(a) * Math.cos(el)); cam.lookAt(0, 0.01, 0);
+    if (auto && prog > 0.95) { since += dt; if (since > 6500) { since = 0; pick(MODES[(MODES.indexOf(mode) + 1) % MODES.length], false); } }
+    for (const m of MODES) alpha[m] += ((m === mode ? 1 : 0) - alpha[m]) * 0.09;
+
+    outline.geometry.instanceCount = Math.max(1, Math.round(outlineN * easeOut(ramp(prog, 0, 0.45))));
+    body.material.opacity = 0.07 * ramp(prog, 0.3, 0.6);
+
+    const tanF = Math.tan(24 * Math.PI / 360), fit = Math.max(1.02 / (2 * tanF), 0.95 / (2 * tanF * cam.aspect));
+    zoom += ((mode === "table" ? 1.85 : mode === "curves" ? 0.92 : 1) - zoom) * 0.06; tx += ((mode === "table" ? -0.255 : 0) - tx) * 0.06;
+    const a = az + (drag ? 0 : Math.sin(time * 0.0004) * 0.10) + alpha.section * -0.25 + alpha.table * 0.25, e2 = el + alpha.section * 0.22 + alpha.table * 0.2, dist = fit * zoom;
+    const c = Math.cos(a), sn = Math.sin(a);
+    cam.position.set(tx * c + dist * sn * Math.cos(e2), dist * Math.sin(e2) + 0.01 + alpha.table * 0.03, -tx * sn * 0 + dist * c * Math.cos(e2)); cam.lookAt(tx, 0.01 + alpha.table * 0.03, 0);
+
     items.forEach((it, i) => {
-      const t = easeOut(ramp(prog, 0.12 + i * 0.065, 0.34 + i * 0.065));
+      const t = easeOut(ramp(prog, 0.3 + i * 0.05, 0.5 + i * 0.05)) * alpha.measure;
       it.l.material.opacity = t * (it.d.kind === "ang" ? 0.95 : 0.6); it.l.visible = t > 0.01; it.g.scale.setScalar(Math.max(t, 0.001));
-      const n = Math.round(it.d.value * t);
-      if (n !== it.shown) { it.shown = n; it.el.textContent = n + (it.d.kind === "ang" ? "°" : ""); }
-      v.copy(it.at); legG.localToWorld(v); v.project(cam);
-      it.el.style.opacity = t; it.el.style.transform = `translate3d(${((v.x + 1) / 2 * W).toFixed(1)}px, ${((1 - v.y) / 2 * H).toFixed(1)}px, 0) translate(-50%, -50%)`;
+      const num = Math.round(it.d.value * t);
+      if (num !== it.shown) { it.shown = num; it.el.textContent = num + (it.d.kind === "ang" ? "°" : ""); }
+      place(it.el, it.at, t);
     });
+    combL.material.opacity = 0.75 * alpha.curves; combL.visible = alpha.curves > 0.01;
+    for (const k of arcs) { k.l.material.opacity = 0.85 * alpha.curves; k.l.visible = alpha.curves > 0.01; place(k.el, k.at, alpha.curves); }
+    const sa = alpha.section; sLine.material.opacity = sa; sFill.material.opacity = 0.5 * sa; plane.material.opacity = 0.5 * sa; sectG.visible = sa > 0.01;
+    if (sectG.visible) section(0.02 + 0.71 * (0.5 - 0.5 * Math.cos(time * 0.0007)));
+    place(sectEl, sectAt, sa);
+    for (const o of tableLines) { o.material.opacity = (o.material.color.getHex() === INK ? 0.55 : 0.32) * alpha.table; } tableG.visible = alpha.table > 0.01;
     gl.render(scene, cam);
   }
   requestAnimationFrame(frame);
