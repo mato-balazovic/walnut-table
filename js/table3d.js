@@ -1,6 +1,7 @@
 // The landing: the table drawn live in 3D and driven by the scroll position.
 // The leg as a line drawing -> small pieces of walnut pack into it -> four legs -> the two raw slabs ->
-// they break into pieces and gather into the two halves of the top -> the black epoxy pour -> the table -> from above.
+// the real cuts, the offcuts lifting away whole -> the two pieces laid for the pour -> the pour seen from the ground,
+// looking along the gap -> flattened, sanded and cut round -> the table -> from above.
 // Geometry is the same as the Blender scene (render/build_table.py): leg outline in (r, h) mm, 40 mm thick,
 // legs at 45/135/225/315 degrees, top 1100 x 40 mm with its underside at 750 mm. Built z-up, then tipped to y-up.
 import * as THREE from "three";
@@ -147,6 +148,42 @@ function inside(P, x, y) {
 function bounds(P) { const xs = P.map(p => p[0]), ys = P.map(p => p[1]); return [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]; }
 function pointIn(P, bb) { for (;;) { const x = mix(bb[0], bb[1], Math.random()), y = mix(bb[2], bb[3], Math.random()); if (inside(P, x, y)) return [x, y]; } }
 
+// where a horizontal line at y crosses an outline: the leftmost and rightmost crossing
+function spanAt(P, y) {
+  let lo = Infinity, hi = -Infinity;
+  for (let i = 0, j = P.length - 1; i < P.length; j = i++) {
+    const a = P[i], b = P[j];
+    if ((a[1] > y) !== (b[1] > y)) { const x = a[0] + (y - a[1]) / (b[1] - a[1]) * (b[0] - a[0]); lo = Math.min(lo, x); hi = Math.max(hi, x); }
+  }
+  return [lo, hi];
+}
+
+// the sawn end of a slab: growth rings of a flat-sawn board (the heart of the tree sits well outside it), pores and saw marks
+function tone(image) {                                         // the average colour of the wood in a picture
+  const c = document.createElement("canvas"); c.width = c.height = 16;
+  const x = c.getContext("2d", { willReadFrequently: true }); x.drawImage(image, 0, 0, 16, 16);
+  const d = x.getImageData(0, 0, 16, 16).data; let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] > 120) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+  return n ? [r / n, g / n, b / n] : [124, 96, 74];
+}
+function endGrain(seed, up, rgb) {
+  const w = 1024, h = 128, c = document.createElement("canvas"); c.width = w; c.height = h;
+  const g = c.getContext("2d"), im = g.createImageData(w, h), d = im.data;
+  let s = seed; const rnd = () => (s = s * 16807 % 2147483647) / 2147483647;
+  const px = 570 / w, py = 55 / h, cx = 570 * (0.25 + 0.5 * rnd()), cy = up ? -150 - 90 * rnd() : 205 + 90 * rnd();
+  const wob = [0, 1, 2].map(() => [0.01 + rnd() * 0.02, rnd() * 6.28, 3 + rnd() * 5]);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+    const X = i * px, Y = j * py, r = Math.hypot(X - cx, (Y - cy) * 1.25);
+    let ph = r / 7.5 + Math.sin(r * 0.045 + seed) * 0.9; for (const [f, o, a] of wob) ph += Math.sin(X * f + o) * a * 0.12;
+    const ring = Math.pow(0.5 + 0.5 * Math.sin(ph * 6.283), 5);
+    const n = Math.abs((Math.sin(i * 12.9898 + j * 78.233) * 43758.5453) % 1), saw = 0.5 + 0.5 * Math.sin(i * 0.8 + Math.sin(j * 0.21) * 0.7);
+    const k = 1 - 0.20 * ring + 0.10 * (n - 0.5) - 0.04 * saw + 0.05 * Math.sin(X * 0.021 + seed), q = (j * w + i) * 4;
+    d[q] = rgb[0] * 0.80 * k; d[q + 1] = rgb[1] * 0.73 * k; d[q + 2] = rgb[2] * 0.67 * k; d[q + 3] = 255;
+  }
+  g.putImageData(im, 0, 0);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t;
+}
+
 // a picture's colours, readable point by point (u, v as on the 3D surface); values in linear light
 function sampler(image, w, h) {
   const c = document.createElement("canvas"); c.width = w; c.height = h;
@@ -197,21 +234,25 @@ function movePieces(S, t, time) {
 // ---------------------------------------------------------------- the scroll story
 // p: where in the story (0 to 1). az/el: camera angles. t: what it looks at. fw/fh: the size to keep in frame (m).
 // sx: how far right of centre the subject sits on a wide screen. use: share of the width it may fill.
-const T_LEG = [0.04, 0.13], T_FAN = [0.16, 0.22], T_OUT = [0.235, 0.29], T_SLABS = [0.24, 0.31], T_CUT = [0.345, 0.515], T_POUR = [0.545, 0.705], T_FIN = [0.72, 0.825], T_BACK = [0.835, 0.895], T_LOOK = [0.93, 0.975];
-function keys(wide) {
+// sy: how far below its usual place the subject sits (share of the height). par: how much the pointer moves the camera.
+const T_LEG = [0.04, 0.13], T_FAN = [0.16, 0.22], T_OUT = [0.235, 0.29], T_SLABS = [0.24, 0.31], T_CUT = [0.345, 0.515], T_EYE = [0.50, 0.545, 0.705, 0.75],
+  T_POUR = [0.56, 0.70], T_FIN = [0.75, 0.835], T_BACK = [0.84, 0.895], T_LOOK = [0.93, 0.975];
+function keys(wide, eyeAt) {
   const slabAz = wide ? Math.PI / 4 : -Math.PI / 4;             // slabs lie across a wide screen, upright on a tall one
   const slab = { t: [0, 0.78, 0], fw: wide ? 2.35 : 1.45, fh: wide ? 1.30 : 1.85, sx: wide ? 0.21 : 0.13, use: 0.55 };
-  const face = { az: -Math.PI / 4, el: 1.5, t: [0.0707, 0.79, -0.0707], fw: 1.44, fh: wide ? 1.30 : 1.0, sx: 0.15, use: 0.58 };   // straight on: the pieces fill most of the height, with room above for the pour
+  // from the ground: level with the two pieces, looking along the gap. The thickness of the wood is the height on screen.
+  const eye = { az: -Math.PI / 4, el: 0.045, t: eyeAt, fw: 0.26, fh: 0.195, sx: 0, sy: 0.10, use: 0.60, par: 0.3 };
   return [
     { p: 0.00, az: 0.00, el: 0.05, t: [0.26, 0.375, 0], fw: 0.62, fh: 0.84, sx: 0, use: 0.80 },
     { p: 0.055, az: 0.60, el: 0.13, t: [0.26, 0.375, 0], fw: 0.70, fh: 0.92, sx: 0.19, use: 0.48 },
     { p: 0.14, az: 0.35, el: 0.10, t: [0.26, 0.375, 0], fw: 0.68, fh: 0.90, sx: 0.19, use: 0.48 },
     { p: 0.225, az: 0.15, el: 0.22, t: [0, 0.40, 0], fw: 1.22, fh: 0.98, sx: 0.17, use: 0.58 },
     Object.assign({ p: 0.31, az: slabAz, el: 0.92 }, slab),
-    Object.assign({ p: 0.45, az: slabAz, el: 1.0 }, slab),
-    Object.assign({ p: 0.535 }, face),
-    Object.assign({ p: 0.715 }, face),
-    { p: 0.81, az: -Math.PI / 4 + 0.2, el: 1.22, t: [0, 0.79, 0], fw: 1.55, fh: 1.4, sx: 0.15, use: 0.60 },
+    Object.assign({ p: 0.495, az: slabAz, el: 1.0 }, slab),
+    Object.assign({ p: 0.548 }, eye),
+    Object.assign({ p: 0.705 }, eye),
+    { p: 0.775, az: -Math.PI / 4 + 0.2, el: 1.22, t: [0, 0.79, 0], fw: 1.55, fh: 1.4, sx: 0.15, use: 0.60 },
+    { p: 0.83, az: -Math.PI / 4 + 0.28, el: 1.2, t: [0, 0.79, 0], fw: 1.55, fh: 1.4, sx: 0.15, use: 0.60 },
     { p: 0.895, az: -0.35, el: 0.42, t: [0, 0.45, 0], fw: 1.28, fh: 1.05, sx: 0.15, use: 0.60 },
     { p: 0.975, az: -Math.PI / 4, el: 1.45, t: [0, 0.79, 0], fw: 1.26, fh: 1.26, sx: 0.15, use: 0.62 },
   ];
@@ -220,6 +261,7 @@ function keyAt(K, p) {
   let i = 0; while (i < K.length - 2 && p > K[i + 1].p) i++;
   const a = K[i], b = K[i + 1], t = smooth(ramp(p, a.p, b.p)), o = {};
   for (const k of ["az", "el", "fw", "fh", "sx", "use"]) o[k] = mix(a[k], b[k], t);
+  o.sy = mix(a.sy || 0, b.sy || 0, t); o.par = mix(a.par ?? 1, b.par ?? 1, t);
   o.t = a.t.map((v, j) => mix(v, b.t[j], t));
   return o;
 }
@@ -252,6 +294,7 @@ async function start(canvas) {
   scene.environment = pm.fromScene(new RoomEnvironment(), 0.04).texture;
   const key = new THREE.DirectionalLight(0xffe6cc, 2.4); key.position.set(2.5, 3.2, 2.6); scene.add(key);
   const rim = new THREE.DirectionalLight(0xffc09a, 2.4); rim.position.set(-3, 1.6, -3); scene.add(rim);
+  const front = new THREE.DirectionalLight(0xffe4c8, 0); front.position.set(-2.3, 1.7, 0.6); scene.add(front);   // only for the pour: lights the sawn ends facing the camera
   const cam = new THREE.PerspectiveCamera(FOV, 1, 0.05, 40);
 
   const spin = new THREE.Group(); spin.rotation.y = -Math.PI / 4;       // leg 1 lies along +x, facing the camera
@@ -324,190 +367,158 @@ async function start(canvas) {
   const topG = new THREE.Group(); zup.add(topG);
   const topMesh = new THREE.Mesh(topParts().geometry, topMat); topMesh.visible = false; topG.add(topMesh);
 
-  // ---- the two raw slabs: sawn where they really were (25 Oct), offcuts lifted away, the two pieces laid for the pour
+  // ---- the two raw slabs: sawn where they really were (25 Oct), the offcuts lifted away whole, the two pieces laid for the pour
   // Layout frame (slabs/pieces.py): mm, x to the right, y down from piece A's top cut; the circle's centre is (cx, cy).
   const LY = data.layout, SLAB_T = 0.055, PIECE_TOP = LEG_H + TOP_T - 0.002, SLAB_Z = PIECE_TOP - SLAB_T, SLAB_X = 0.375;
+  const Y_SECT = (LY.cy - LY.piece) / 1000;                     // piece A's near sawn end: the plane the pour is watched at
   const lineMats = [legLines.material];
   const slabsG = new THREE.Group(); zup.add(slabsG);
-  const capMat = new THREE.MeshStandardMaterial({ color: 0x8a6248, roughness: 0.8, side: THREE.DoubleSide });
+  const capGeo = new THREE.PlaneGeometry(1, SLAB_T);
+  const capMats = { A: endGrain(7, false, tone(slabA.image)), B: endGrain(23, true, tone(slabB.image)) };
+  for (const n in capMats) capMats[n] = new THREE.MeshStandardMaterial({ map: capMats[n], roughness: 0.82, envMapIntensity: 0.4, side: THREE.DoubleSide });
   const slabs = [["A", slabA, -SLAB_X, 0, 0], ["B", slabB, SLAB_X, LY.ox, LY.off]].map(([n, map, x0, dx, dy]) => {
     const o = data.slabs[n], part = slabParts(o, SLAB_T), [ra, rb] = LY.cuts[n].rows, st = LY.piece / (rb - ra);
-    const mk = (lo, hi) => {                                    // one stretch of the slab between two rows of its picture
-      const u = { lo: { value: 1 - hi / o.h }, hi: { value: 1 - lo / o.h }, gone: { value: 0 } };
-      const mat = new THREE.MeshStandardMaterial({ map, roughness: 0.86, envMapIntensity: 0.45 });
+    const mk = (lo, hi, fade) => {                              // one stretch of the slab between two rows of its picture
+      const u = { lo: { value: 1 - hi / o.h }, hi: { value: 1 - lo / o.h } };
+      const mat = new THREE.MeshStandardMaterial({ map, roughness: 0.86, envMapIntensity: 0.45, transparent: !!fade });
       mat.onBeforeCompile = sh => {
-        Object.assign(sh.uniforms, { uLo: u.lo, uHi: u.hi, uGone: u.gone });
-        sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uLo; uniform float uHi; uniform float uGone;")
-          .replace("#include <map_fragment>", `if (vMapUv.y < uLo || vMapUv.y > uHi) discard;
-            if (uGone > 0.0) { vec2 cell = floor(vMapUv * vec2(40.0, 112.0)); if (uGone > 0.15 + 0.85 * fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453)) discard; }
-            #include <map_fragment>`);
+        Object.assign(sh.uniforms, { uLo: u.lo, uHi: u.hi });
+        sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uLo; uniform float uHi;")
+          .replace("#include <map_fragment>", "if (vMapUv.y < uLo || vMapUv.y > uHi) discard;\n#include <map_fragment>");
       };
       const g = new THREE.Group(); g.add(new THREE.Mesh(part.geometry, mat)); g.position.set(x0, 0, 0); slabsG.add(g);
-      return { g, u };
+      const capMat = fade ? Object.assign(capMats[n].clone(), { transparent: true }) : capMats[n];
+      return { g, u, mat, capMat };
     };
-    const cap = (g, i) => {                                     // the fresh sawn face at a cut
-      const [l, r] = LY.cuts[n].x[i], row = LY.cuts[n].rows[i], w = (r - l) / 1000;
-      const m = new THREE.Mesh(new THREE.PlaneGeometry(w, SLAB_T), capMat); m.rotation.x = Math.PI / 2;
-      m.position.set(((l + r) / 2 - o.w / 2) / 1000, (o.h / 2 - row) / 1000, SLAB_T / 2); g.add(m);
+    const cap = (q, i) => {                                     // the fresh sawn face at a cut
+      const [l, r] = LY.cuts[n].x[i], row = LY.cuts[n].rows[i];
+      const m = new THREE.Mesh(capGeo, q.capMat); m.rotation.x = Math.PI / 2; m.scale.x = (r - l) / 1000;
+      m.position.set(((l + r) / 2 - o.w / 2) / 1000, (o.h / 2 - row) / 1000, SLAB_T / 2); q.g.add(m); return m;
     };
-    const piece = mk(ra, rb), offs = [mk(-1, ra), mk(rb, o.h + 1)];
-    cap(piece.g, 0); cap(piece.g, 1); cap(offs[0].g, 0); cap(offs[1].g, 1);
+    const piece = mk(ra, rb), offs = [mk(-1, ra, true), mk(rb, o.h + 1, true)];
+    cap(piece, 0); const nearCap = cap(piece, 1); cap(offs[0], 0); cap(offs[1], 1);
     const saws = [0, 1].map(i => {                              // the saw line across the slab at each cut
       const [l, r] = LY.cuts[n].x[i], row = LY.cuts[n].rows[i], len = (r - l + 50) / 1000;
       const g = new THREE.Group(), ln = lines([0, 0, 0, len, 0, 0], 2.6); lineMats.push(ln.material);
       g.position.set(x0 + (l - 25 - o.w / 2) / 1000, (o.h / 2 - row) / 1000, SLAB_T + 0.004); g.add(ln); slabsG.add(g);
-      return { g, ln, y: (o.h / 2 - row) / 1000, x: x0 + (l - o.w / 2) / 1000, w: (r - l) / 1000 };
+      return { g, ln };
     });
     // where the piece goes for the pour: its rows stretched to 1270 mm, placed in the layout
     const to = { x: (o.w / 2 + dx - LY.cx) / 1000, y: (LY.cy - dy + ra * st - st * o.h / 2) / 1000, s: st };
-    return { n, o, x0, outline: part.outline, bb: bounds(part.outline), pix: sampler(map.image, 190, 532), piece, offs, saws, rows: [ra, rb], to };
+    // for the view from the ground both pieces end in one plane: the row of this slab that lies in that plane
+    const sectRow = o.h / 2 - (Y_SECT - to.y) / to.s * 1000;
+    return { n, o, x0, outline: part.outline, piece, offs, saws, rows: [ra, rb], to, nearCap,
+      sect: Math.abs(sectRow - rb) > 1 ? sectRow : null, capWas: { x: nearCap.position.x, y: nearCap.position.y, w: nearCap.scale.x } };
   });
 
-  // sawdust at the cuts, and the offcuts breaking into pieces as they lift away
-  const tan = [0.50, 0.33, 0.20];
-  const DUST = pieces(small ? 260 : 520, { spread: 0.8, melt: 2, tumble: 6, fromNothing: true, recolour: false, dust: true });
-  {
-    const q = new THREE.Quaternion();
-    for (let i = 0; i < DUST.n; i++) {
-      const i3 = i * 3, c = i % 4, s = slabs[c >> 1], saw = s.saws[c & 1], f = Math.random();
-      const ax = saw.x + f * saw.w, ay = saw.y + (Math.random() - 0.5) * 0.01, az = SLAB_T + 0.004;
-      DUST.A.set([ax, ay, az], i3);
-      DUST.M.set([ax + (Math.random() - 0.5) * 0.10, ay + (Math.random() - 0.5) * 0.22, az + 0.10 + Math.random() * 0.22], i3);
-      DUST.B.set([ax + (Math.random() - 0.5) * 0.22, ay + (Math.random() - 0.5) * 0.5, az + 0.02 + Math.random() * 0.10], i3);
-      DUST.size.set([0.004 + Math.random() * 0.006, 0.006 + Math.random() * 0.012, 0.0012 + Math.random() * 0.002], i3);
-      setQ(DUST.qA, i, randomQ(q)); setQ(DUST.qB, i, randomQ(q));
-      randomQ(q); DUST.axis.set([q.x, q.y, q.z].map(v => v / (Math.hypot(q.x, q.y, q.z) || 1)), i3);
-      DUST.phase[i] = Math.random(); DUST.delay[i] = clamp((0.10 + c * 0.11 + f * 0.36) / 0.8, 0, 0.999);
-      const k = 0.7 + Math.random() * 0.6; DUST.mesh.instanceColor.array.set([tan[0] * k, tan[1] * k, tan[2] * k], i3);
-    }
-    DUST.mesh.instanceColor.needsUpdate = true; slabsG.add(DUST.mesh);
-  }
-  const OFF = pieces(small ? 1200 : 2800, { spread: 0.55, melt: 2, tumble: 5, fromNothing: false, recolour: false, dust: true });
-  {
-    const q = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1), c = [0, 0, 0];
-    for (let i = 0; i < OFF.n; i++) {
-      const i3 = i * 3; let s, sx, sy, row;
-      for (;;) { s = slabs[Math.random() < 0.52 ? 0 : 1]; [sx, sy] = pointIn(s.outline, s.bb); row = s.o.h / 2 - sy * 1000; if (row < s.rows[0] || row > s.rows[1]) break; }
-      const ax = s.x0 + sx, az = SLAB_T + 0.002;
-      OFF.A.set([ax, sy, az], i3);
-      OFF.M.set([ax + (Math.random() - 0.5) * 0.3, sy + (Math.random() - 0.5) * 0.3, az + 0.35 + Math.random() * 0.4], i3);
-      OFF.B.set([ax + (Math.random() - 0.5) * 0.9, sy + (Math.random() - 0.5) * 0.9, az + 1.0 + Math.random() * 0.9], i3);
-      OFF.size.set([0.012 + Math.random() * 0.014, 0.024 + Math.random() * 0.034, 0.003 + Math.random() * 0.005], i3);
-      setQ(OFF.qA, i, q.setFromAxisAngle(zAxis, (Math.random() - 0.5) * 0.7)); setQ(OFF.qB, i, randomQ(q));
-      randomQ(q); OFF.axis.set([q.x, q.y, q.z].map(v => v / (Math.hypot(q.x, q.y, q.z) || 1)), i3);
-      OFF.phase[i] = Math.random(); OFF.delay[i] = Math.random();
-      s.pix(sx * 1000 / s.o.w + 0.5, sy * 1000 / s.o.h + 0.5, c); OFF.mesh.instanceColor.array.set(c, i3);
-    }
-    OFF.mesh.instanceColor.needsUpdate = true; slabsG.add(OFF.mesh);
-  }
-
-  // the mould under the pieces: a wide matte board, so the open gap and the dark epoxy read apart
-  const form = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.72, 0.018), new THREE.MeshStandardMaterial({ color: 0x4d4037, roughness: 0.9, envMapIntensity: 0.25 }));
+  // the mould under the pieces: a wide matte board. For the view from the ground it runs on toward the camera and fades out.
+  const formU = { uNear: { value: 0 } };
+  const formMat = new THREE.MeshStandardMaterial({ color: 0x4d4037, roughness: 0.9, envMapIntensity: 0.25, transparent: true });
+  formMat.onBeforeCompile = sh => {
+    sh.uniforms.uNear = formU.uNear;
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nvarying float vFy;").replace("#include <begin_vertex>", "#include <begin_vertex>\nvFy = position.y;");
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uNear; varying float vFy;")
+      .replace("#include <map_fragment>", "float formA = smoothstep(mix(-0.861, -1.02, uNear), mix(-0.859, -0.60, uNear), vFy);\nif (formA < 0.004) discard;\n#include <map_fragment>\ndiffuseColor.rgb *= mix(1.0, 0.55, uNear);")
+      .replace("#include <dithering_fragment>", "#include <dithering_fragment>\ngl_FragColor.a *= formA;");
+  };
+  const form = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.91, 0.018).translate(0, -0.095, 0), formMat);
   form.visible = false; zup.add(form);
 
-  // ---- the pour, seen straight on: a dark matte liquid runs in from the top of the page, down the gap, and fills it from the bottom up
-  const riverTex = (() => {
-    const r = LY.river, n = r.c.length, d = new Uint8Array(n * 4);
-    for (let i = 0; i < n; i++) { d[i * 4] = clamp(Math.round(r.c[i] - 560), 0, 255); d[i * 4 + 1] = clamp(Math.round(r.hw[i] * 4), 0, 255); d[i * 4 + 3] = 255; }
-    const t = new THREE.DataTexture(d, n, 1, THREE.RGBAFormat); t.minFilter = t.magFilter = THREE.LinearFilter; t.needsUpdate = true; return t;
+  // ---- the pour, seen from the ground. The camera sits level with the two pieces and looks along the gap:
+  // one sawn end on the left, one on the right, and between them the black epoxy falls in from above and rises to the top.
+  const finGeo = new THREE.PlaneGeometry(LY.size / 1000, LY.size / 1000);
+  const finPos = [(LY.size / 2 - LY.cx) / 1000, (LY.cy - LY.size / 2) / 1000];
+  const LAND = (() => {                                         // where the stream lands: in the gap, a little way in from the front
+    const y = Y_SECT + 0.21, r = LY.river, i = clamp(Math.round((LY.cy - y * 1000 - r.y0) / r.step), 0, r.c.length - 1);
+    return [(r.c[i] - LY.cx) / 1000, y];
   })();
-  const liq = { uMask: { value: layMask }, uRiver: { value: riverTex }, uHead: { value: 2 }, uLevel: { value: 0 }, uFlow: { value: 1 }, uTime: clock, uRip: rips,
-    uC: { value: new THREE.Vector4(LY.cx, LY.cy, LY.size, LY.river.y0) }, uOff: { value: new THREE.Vector2(0, 0.5) } };
-  const liquid = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 2.6), new THREE.ShaderMaterial({
-    uniforms: liq, transparent: false,
-    vertexShader: "uniform vec2 uOff; varying vec2 vP; void main() { vP = position.xy + uOff; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }",
+  const GAP = (() => {                                          // the gap at the front: from piece A's edge to piece B's
+    const [a, b] = slabs, ly = b.sect === null ? b.capWas.y : (b.o.h / 2 - b.sect) / 1000;
+    const l = a.to.x + a.capWas.x + a.capWas.w / 2, r = b.to.x + (b.sect === null ? b.capWas.x - b.capWas.w / 2 : spanAt(b.outline, ly)[0]);
+    return { x: (l + r) / 2, w: r - l };
+  })();
+  const liq = { uMask: { value: layMask }, uLevel: { value: 0 }, uSpread: { value: 0 }, uFlow: { value: 0 }, uTime: clock, uRip: rips,
+    uLand: { value: new THREE.Vector2(LAND[0], LAND[1]) }, uOff: { value: new THREE.Vector2(finPos[0], finPos[1]) } };
+  const pool = new THREE.Mesh(finGeo, new THREE.ShaderMaterial({                    // the surface of the liquid
+    uniforms: liq,
+    vertexShader: `uniform vec2 uOff; varying vec2 vP; varying vec2 vU; varying vec3 vW;
+      void main() { vU = uv; vP = position.xy + uOff; vec4 w = modelMatrix * vec4(position, 1.0); vW = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }`,
     fragmentShader: `
-      uniform sampler2D uMask; uniform sampler2D uRiver; uniform float uHead; uniform float uLevel; uniform float uFlow; uniform float uTime; uniform vec4 uC; uniform vec4 uRip[8];
-      varying vec2 vP;
+      uniform sampler2D uMask; uniform float uLevel; uniform float uSpread; uniform float uFlow; uniform float uTime; uniform vec2 uLand; uniform vec4 uRip[8];
+      varying vec2 vP; varying vec2 vU; varying vec3 vW;
       void main() {
-        float Yl = uC.y - vP.y * 1000.0;                                       // mm down from piece A's top cut
-        vec2 uv = vec2((vP.x * 1000.0 + uC.x) / uC.z, 1.0 - Yl / uC.z);
-        float inMap = step(0.0, uv.x) * step(uv.x, 1.0) * step(0.0, uv.y) * step(uv.y, 1.0);
-        float resin = inMap * texture2D(uMask, uv).r;
-        vec2 rv = texture2D(uRiver, vec2(clamp((Yl - uC.w) / 1140.0, 0.002, 0.998), 0.5)).rg;
-        float cx = (560.0 + rv.r * 255.0 - uC.x) / 1000.0, hw = rv.g * 255.0 / 4000.0;
-        float settle = 1.0 - smoothstep(0.96, 1.0, uLevel);
-        float surf = mix(-0.60, 0.60, uLevel) + (sin(vP.x * 46.0 + uTime * 2.6) * 0.0035 + sin(vP.x * 19.0 - uTime * 1.7) * 0.003) * settle;
-        float filled = step(0.5, resin) * step(vP.y, surf);
-        // the flow: a wide sheet from the top of the page that funnels into the gap, then runs down it
-        float up = smoothstep(0.60, 1.04, vP.y);
-        float wide = mix(min(hw * 0.9, 0.03), 0.84, pow(up, 1.7)) * (1.0 + 0.05 * sin(vP.y * 8.0 - uTime * 3.0) * up);
-        float sw = (vP.y > 0.60 ? wide : min(hw * 0.9, 0.03 + 0.004 * sin(vP.y * 31.0 + uTime * 9.0))) * uFlow;
-        float sx = cx + 0.004 * sin(vP.y * 23.0 - uTime * 7.0) * (1.0 - up);
-        float off = abs(vP.x - sx) / max(sw, 1e-4);
-        float head = max(surf - 0.004, uHead + 0.03 * sin(vP.x * 14.0 + uTime * 2.0) * up);
-        float stream = (1.0 - smoothstep(0.86, 1.0, off)) * step(head, vP.y) * step(0.002, sw);
-        if (max(filled, stream) < 0.5) discard;
-        vec3 col = vec3(0.020, 0.017, 0.015);
-        float lip = filled * smoothstep(0.024, 0.0, surf - vP.y) * settle;                // the lighter edge of the rising surface
-        col += vec3(0.13, 0.10, 0.075) * lip;
-        float run = (1.0 - filled) * stream;
-        float streak = 0.5 + 0.5 * sin(vP.x * 130.0 + sin(vP.y * 6.0 + uTime * 2.4) * 2.2);          // the liquid's own slow streaks
-        col = mix(col, vec3(0.040, 0.032, 0.027) + vec3(0.030, 0.023, 0.018) * streak, run);
-        col = mix(col, vec3(0.11, 0.085, 0.066), run * smoothstep(0.55, 1.0, off));             // a soft lighter edge: it reads as a body of liquid
+        float m = texture2D(uMask, vU).r;
+        if (uLevel < 0.97) { float d = 9.0 / 1400.0; m = max(m, max(texture2D(uMask, vU + vec2(d, 0.0)).r, texture2D(uMask, vU - vec2(d, 0.0)).r)); }   // below the top the wood hides the overlap
+        if (m < 0.5) discard;
+        float away = abs(vP.y - uLand.y);
+        if (away > uSpread) discard;                                             // it spreads along the gap from where it lands
+        vec3 V = normalize(cameraPosition - vW);
+        float f = 1.0 - clamp(V.y, 0.0, 1.0), sheen = f * f * f;                 // seen from the ground the surface catches the light; from above it is matt black
+        float dl = length(vP - uLand);
+        float ring = sin((dl - uTime * 0.14) * 62.0) * exp(-dl * 7.0) * uFlow;
         float t = 0.0;
         for (int i = 0; i < 8; i++) {
           float age = uTime - uRip[i].z;
           if (uRip[i].w > 0.0 && age > 0.0 && age < 2.6) { float d = length(vP - uRip[i].xy), q = (d - age * 0.30) / 0.03; t += sin((d - age * 0.30) * 105.0) * exp(-q * q) * exp(-age * 1.4); }
         }
-        col += vec3(0.05, 0.04, 0.03) * t * filled;
+        vec3 col = vec3(0.020, 0.017, 0.015);
+        col += vec3(0.20, 0.155, 0.115) * sheen * clamp(0.55 + 0.30 * ring + 0.6 * t, 0.0, 2.0);
+        col += vec3(0.05, 0.04, 0.03) * max(t, 0.0);
+        col += vec3(0.10, 0.08, 0.06) * smoothstep(0.03, 0.0, uSpread - away) * step(uSpread, 1.19);
         gl_FragColor = vec4(col, 1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }` }));
-  liquid.position.set(0, 0.5, PIECE_TOP + 0.0012); liquid.visible = false; zup.add(liquid);
+  pool.position.set(finPos[0], finPos[1], SLAB_Z); pool.visible = false; zup.add(pool);
+  // the liquid's front face, where the view cuts through it, with a lighter line at its surface
+  const face = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshStandardMaterial({ color: 0x0c0a09, roughness: 0.32, envMapIntensity: 0.7 }));
+  const lip = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: 0x5a4636 }));
+  for (const m of [face, lip]) { m.rotation.x = Math.PI / 2; m.visible = false; zup.add(m); }
+  face.position.set(GAP.x, Y_SECT + 0.001, SLAB_Z); lip.position.set(GAP.x, Y_SECT + 0.0005, SLAB_Z); lip.scale.set(GAP.w, 0.0014, 1);
+  // the stream: a ribbon of liquid from above the screen down to the surface, wide at the top, thin where it lands
+  const STREAM_L = 1.3, streamU = { uTime: clock, uHead: { value: 1 }, uTail: { value: 1 }, uW: { value: 1 } };
+  const streamMat = new THREE.MeshStandardMaterial({ color: 0x0d0b0a, roughness: 0.28, envMapIntensity: 1.0 });
+  streamMat.onBeforeCompile = sh => {
+    Object.assign(sh.uniforms, streamU);
+    sh.vertexShader = sh.vertexShader.replace("#include <common>", "#include <common>\nuniform float uTime; uniform float uW; varying float vV;")
+      .replace("#include <begin_vertex>", `#include <begin_vertex>
+        vV = uv.y;
+        transformed.x *= mix(0.011, 0.032, vV * vV) * uW; transformed.z *= mix(0.006, 0.009, vV) * uW;
+        transformed.x += sin(vV * 11.0 + uTime * 5.0) * 0.003 + sin(vV * 4.3 - uTime * 2.2) * 0.006 * vV;`);
+    sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform float uHead; uniform float uTail; varying float vV;")
+      .replace("#include <map_fragment>", "if (vV < uHead || vV > uTail) discard;\n#include <map_fragment>");
+  };
+  const stream = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 1, 24, 48, true), streamMat);
+  stream.rotation.x = Math.PI / 2; stream.scale.y = STREAM_L; stream.position.set(LAND[0], LAND[1], SLAB_Z); stream.frustumCulled = false; stream.visible = false; zup.add(stream);
+  const mound = new THREE.Mesh(new THREE.SphereGeometry(1, 20, 12), streamMat.clone());      // where the stream meets the surface
+  mound.position.set(LAND[0], LAND[1], SLAB_Z); mound.visible = false; zup.add(mound);
 
   // ---- after the pour: flattened and sanded (the raw wood turns into the finished look), then the circle is cut
-  const finU = { wipe: { value: 0 }, side: { value: 0 }, gone: { value: 0 } };
+  const finU = { wipe: { value: 0 } };
   const finMat = side => {
-    const m = wood(layFin, { roughness: 0.5, clearcoat: 0.05, envMapIntensity: 0.2 });
+    const m = wood(layFin, { roughness: 0.5, clearcoat: 0.05, envMapIntensity: 0.2, transparent: side < 0 });
     m.onBeforeCompile = sh => {
-      Object.assign(sh.uniforms, { uMask: { value: layMask }, uWipe: finU.wipe, uSide: { value: side }, uGone: side < 0 ? finU.gone : { value: 0 },
+      Object.assign(sh.uniforms, { uMask: { value: layMask }, uWipe: finU.wipe, uSide: { value: side },
         uC: { value: new THREE.Vector3(LY.cx / LY.size, 1 - LY.cy / LY.size, 550 / LY.size) } });
-      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform sampler2D uMask; uniform float uWipe; uniform float uSide; uniform float uGone; uniform vec3 uC;")
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform sampler2D uMask; uniform float uWipe; uniform float uSide; uniform vec3 uC;")
         .replace("#include <map_fragment>", `if (texture2D(uMask, vMapUv).g < 0.5) discard;
           float rr = length(vMapUv - uC.xy);
           if (uSide > 0.5 && rr > uC.z) discard;
           if (uSide < -0.5 && rr <= uC.z) discard;
           float edge = 1.0 - vMapUv.y, front = uWipe * 1.1 - edge;
           if (front < 0.0) discard;
-          if (uGone > 0.0) { vec2 cell = floor(vMapUv * vec2(70.0, 70.0)); if (uGone > 0.1 + 0.9 * fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453)) discard; }
           #include <map_fragment>
           diffuseColor.rgb += vec3(0.55, 0.32, 0.18) * smoothstep(0.03, 0.0, front) * step(uWipe, 0.999);`);
     };
     return m;
   };
-  const finGeo = new THREE.PlaneGeometry(LY.size / 1000, LY.size / 1000);
-  const finPos = [(LY.size / 2 - LY.cx) / 1000, (LY.cy - LY.size / 2) / 1000];
-  const finIn = new THREE.Mesh(finGeo, finMat(0)), finOut = new THREE.Mesh(finGeo, finMat(-1));
+  const finIn = new THREE.Mesh(finGeo, finMat(0)), finOut = new THREE.Mesh(finGeo, finMat(-1));     // finOut: what is left outside the circle, lifted away whole
   for (const m of [finIn, finOut]) { m.position.set(finPos[0], finPos[1], LEG_H + TOP_T); m.visible = false; zup.add(m); }
   const ring = (() => {                                         // the cut line of the circle
     const N = 160, seg = [];
     for (let i = 0; i < N; i++) { const a = Math.PI / 2 - 2 * Math.PI * i / N, b = Math.PI / 2 - 2 * Math.PI * (i + 1) / N; seg.push(TOP_R * Math.cos(a), TOP_R * Math.sin(a), 0, TOP_R * Math.cos(b), TOP_R * Math.sin(b), 0); }
     const l = lines(seg, 2.6); l.position.z = LEG_H + TOP_T + 0.003; l.visible = false; l.userData.n = N; lineMats.push(l.material); zup.add(l); return l;
   })();
-  const WASTE = pieces(small ? 700 : 1600, { spread: 0.5, melt: 2, tumble: 5, fromNothing: false, recolour: false, dust: true });
-  {
-    const maskPix = sampler(layMask.image, 350, 350), finPix = sampler(layFin.image, 350, 350);
-    const q = new THREE.Quaternion(), zAxis = new THREE.Vector3(0, 0, 1), c = [0, 0, 0];
-    for (let i = 0; i < WASTE.n; i++) {
-      const i3 = i * 3; let u, v, x, y;
-      for (;;) {
-        u = Math.random(); v = Math.random(); x = (u * LY.size - LY.cx) / 1000; y = (LY.cy - (1 - v) * LY.size) / 1000;
-        if (x * x + y * y > TOP_R * TOP_R && maskPix(u, v, c, 0, true)[1] > 0.5) break;
-      }
-      const z = LEG_H + TOP_T + 0.002;
-      WASTE.A.set([x, y, z], i3);
-      WASTE.M.set([x * 1.25 + (Math.random() - 0.5) * 0.2, y * 1.25 + (Math.random() - 0.5) * 0.2, z + 0.25 + Math.random() * 0.35], i3);
-      WASTE.B.set([x * 1.7 + (Math.random() - 0.5) * 0.6, y * 1.7 + (Math.random() - 0.5) * 0.6, z + 0.8 + Math.random() * 0.8], i3);
-      WASTE.size.set([0.012 + Math.random() * 0.014, 0.024 + Math.random() * 0.03, 0.003 + Math.random() * 0.004], i3);
-      setQ(WASTE.qA, i, q.setFromAxisAngle(zAxis, (Math.random() - 0.5) * 0.7)); setQ(WASTE.qB, i, randomQ(q));
-      randomQ(q); WASTE.axis.set([q.x, q.y, q.z].map(w => w / (Math.hypot(q.x, q.y, q.z) || 1)), i3);
-      WASTE.phase[i] = Math.random(); WASTE.delay[i] = Math.random();
-      finPix(u, v, c); WASTE.mesh.instanceColor.array.set(c, i3);
-    }
-    WASTE.mesh.instanceColor.needsUpdate = true; zup.add(WASTE.mesh);
-  }
 
   // ---- the page around the canvas
   const land = stage.querySelector(".land");
@@ -525,10 +536,11 @@ async function start(canvas) {
   });
   const marksBox = stage.querySelector(".marks");
 
-  let W = 1, H = 1, K = keys(true), p = 0, ps = 0, mx = 0, my = 0, mxs = 0, mys = 0, onscreen = true, first = true;
+  const EYE_AT = [0.7071 * (GAP.x + Y_SECT), SLAB_Z + SLAB_T * 0.62, 0.7071 * (GAP.x - Y_SECT)];
+  let W = 1, H = 1, K = keys(true, EYE_AT), lastEye = -1, p = 0, ps = 0, mx = 0, my = 0, mxs = 0, mys = 0, onscreen = true, first = true;
   function size() {
     W = stage.clientWidth; H = stage.clientHeight; gl.setSize(W, H, false);
-    cam.aspect = W / H; cam.updateProjectionMatrix(); K = keys(W / H > 1.05);
+    cam.aspect = W / H; cam.updateProjectionMatrix(); K = keys(W / H > 1.05, EYE_AT);
     for (const m of lineMats) m.resolution.set(W, H);
   }
   function where() { const r = story.getBoundingClientRect(); p = clamp(-r.top / Math.max(1, r.height - innerHeight)); }
@@ -571,45 +583,58 @@ async function start(canvas) {
     }
     legsG.visible = away < 0.995; legsG.position.z = -2.6 * away;
 
-    // the slabs come down; the saw crosses them; the offcuts lift away in pieces; the two pieces slide into the pour layout
-    const arr = smooth(ramp(tc, 0.62, 1.0)), apart = smooth(ramp(tc, 0.36, 0.5)), lift = ramp(tc, 0.42, 0.86);
+    // the slabs come down; the saw crosses them; each offcut lifts away whole and fades; the two pieces slide into the pour layout
+    const arr = smooth(ramp(tc, 0.70, 1.0));
+    const eye = smooth(R(ps, T_EYE)) * (1 - smooth(ramp(ps, T_EYE[2], T_EYE[3])));       // 1 while the pour is watched from the ground
     slabsG.visible = slabsIn > 0 && tf < 0.44; slabsG.position.z = SLAB_Z + 2.4 * (1 - slabsIn);
     slabs.forEach((s, si) => {
       s.piece.g.position.set(mix(s.x0, s.to.x, arr), mix(0, s.to.y, arr), 0); s.piece.g.scale.y = mix(1, s.to.s, arr);
       s.offs.forEach((o, i) => {
-        o.g.visible = lift < 1; o.g.position.set(s.x0, (i ? -1 : 1) * 0.035 * apart, easeOut(lift) * 0.22); o.u.gone.value = ramp(lift, 0.02, 0.62);
+        const c = si * 2 + i, t = ramp(tc, 0.25 + c * 0.055, 0.60 + c * 0.055), a = 1 - smooth(ramp(t, 0.3, 1));
+        o.g.visible = t < 1; o.g.position.set(s.x0, (i ? -1 : 1) * 0.05 * smooth(ramp(t, 0, 0.3)), 1.25 * t * t); o.g.rotation.x = (i ? -1 : 1) * 0.07 * t;
+        o.mat.opacity = a; o.capMat.opacity = a;
       });
       s.saws.forEach((w, i) => {
         const c = si * 2 + i, sweep = ramp(tc, 0.05 + c * 0.055, 0.23 + c * 0.055);
         w.g.scale.x = Math.max(sweep, 0.0001); w.ln.material.opacity = (sweep > 0 ? 1 : 0) * (1 - ramp(tc, 0.40, 0.50)); w.g.visible = w.ln.material.opacity > 0.01;
       });
+      if (s.sect !== null && eye !== lastEye) {                 // from the ground, both pieces end in one plane
+        const row = mix(s.rows[1], s.sect, eye), ly = (s.o.h / 2 - row) / 1000;
+        s.piece.u.lo.value = 1 - row / s.o.h;
+        if (eye > 0) { const [l, r] = spanAt(s.outline, ly); s.nearCap.position.set((l + r) / 2, ly, SLAB_T / 2); s.nearCap.scale.x = r - l; }
+        else { s.nearCap.position.set(s.capWas.x, s.capWas.y, SLAB_T / 2); s.nearCap.scale.x = s.capWas.w; }
+      }
     });
-    movePieces(DUST, ramp(tc, 0, 0.5), time);
-    movePieces(OFF, ramp(tc, 0.40, 0.92), time);
-    const formIn = easeOut(ramp(tc, 0.55, 0.96)), formOut = smooth(ramp(tf, 0.62, 0.95));
+    lastEye = eye; front.intensity = 2.4 * eye; formU.uNear.value = eye;
+    const formIn = easeOut(ramp(tc, 0.64, 0.97)), formOut = smooth(ramp(tf, 0.62, 0.95));
     form.visible = formIn > 0 && formOut < 1; form.position.set(0, 0, SLAB_Z - 0.0095 - 1.4 * (1 - formIn) - 2.8 * formOut);
 
-    // the pour: the stream runs down from the top of the page, then the gap fills from the bottom up
+    // the pour: the stream comes down from above the screen, the liquid spreads along the gap, then rises to the top
     clock.value = time * 0.001;
-    liquid.visible = tp > 0 && tf < 0.44;
-    liq.uHead.value = mix(1.95, -0.63, ramp(tp, 0, 0.2)); liq.uLevel.value = ramp(tp, 0.18, 0.9); liq.uFlow.value = 1 - smooth(ramp(tp, 0.88, 0.99));
+    const level = ramp(tp, 0.12, 0.90), lz = mix(SLAB_Z + 0.0015, PIECE_TOP + 0.0012, level), run = 1 - ramp(tp, 0.88, 0.955);
+    pool.visible = tp > 0.085 && tf < 0.44; pool.position.z = lz;
+    liq.uLevel.value = level; liq.uSpread.value = Math.pow(ramp(tp, 0.085, 0.30), 0.8) * 1.2; liq.uFlow.value = tp > 0.09 ? 1 - ramp(tp, 0.90, 1) : 0;
+    face.visible = lip.visible = pool.visible && level > 0;
+    face.scale.set(GAP.w + 0.012, lz - SLAB_Z, 1); face.position.z = (lz + SLAB_Z) / 2; lip.position.z = lz - 0.0007;
+    stream.visible = tp > 0 && tp < 0.955; stream.position.z = lz + STREAM_L / 2 - 0.003;
+    streamU.uHead.value = 1 - Math.pow(ramp(tp, 0, 0.09), 2); streamU.uTail.value = 1.001 - 1.01 * Math.pow(1 - run, 2);
+    mound.visible = tp > 0.09 && run > 0; mound.position.z = lz; mound.scale.set(0.026 * run, 0.022 * run, 0.007 * run);
 
-    // flattened and sanded, then the circle is cut; what is left outside lifts away in pieces
+    // flattened and sanded, then the circle is cut; what is left outside lifts away whole and fades
     const cut = tf >= 0.66, waste = ramp(tf, 0.66, 1);
-    finU.wipe.value = ramp(tf, 0, 0.42); finU.gone.value = ramp(waste, 0, 0.5);
-    finIn.visible = tf > 0 && !cut; finOut.visible = cut && waste < 0.5; finOut.position.z = LEG_H + TOP_T + easeOut(waste) * 0.15;
+    finU.wipe.value = ramp(tf, 0, 0.42);
+    finIn.visible = tf > 0 && !cut; finOut.visible = cut && waste < 1; finOut.position.z = LEG_H + TOP_T + 0.5 * waste * waste; finOut.material.opacity = 1 - smooth(ramp(waste, 0.25, 0.95));
     topMesh.visible = cut;
     const drawn = ramp(tf, 0.42, 0.66);
     ring.visible = drawn > 0 && tf < 0.9; ring.geometry.instanceCount = Math.max(1, Math.round(ring.userData.n * drawn)); ring.material.opacity = 1 - ramp(tf, 0.70, 0.9);
-    movePieces(WASTE, ramp(tf, 0.64, 1), time);
 
     const tanF = Math.tan(FOV * Math.PI / 360);
     const dist = Math.max(k.fh / (2 * tanF * (wide ? 0.74 : 0.50)), k.fw / (2 * tanF * cam.aspect * (wide ? k.use : 0.86)));
     const calm = 1 - 0.8 * look, idle = 1 - ramp(ps, 0, 0.06);
-    const az = k.az + Math.sin(time * 0.0005) * 0.85 * idle + mxs * 0.22 * calm, el = clamp(k.el + Math.sin(time * 0.00037) * 0.06 * idle - mys * 0.10 * calm, -0.2, 1.5);
+    const az = k.az + Math.sin(time * 0.0005) * 0.85 * idle + mxs * 0.22 * calm * k.par, el = clamp(k.el + Math.sin(time * 0.00037) * 0.06 * idle - mys * 0.10 * calm * k.par, -0.2, 1.5);
     cam.position.set(k.t[0] + dist * Math.sin(az) * Math.cos(el), k.t[1] + dist * Math.sin(el), k.t[2] + dist * Math.cos(az) * Math.cos(el));
     cam.lookAt(k.t[0], k.t[1], k.t[2]);
-    cam.setViewOffset(W, H, wide ? -k.sx * W : 0, wide ? -0.03 * H : mix(0.03, 0.15, ramp(ps, 0.02, 0.07)) * H, W, H);
+    cam.setViewOffset(W, H, wide ? -k.sx * W : 0, ((wide ? -0.03 : mix(0.03, 0.15, ramp(ps, 0.02, 0.07))) - k.sy) * H, W, H);
     gl.render(scene, cam);
 
     const goneCue = ramp(ps, 0.01, 0.045);
