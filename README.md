@@ -1,4 +1,4 @@
-# The walnut table
+# Walnut table
 
 A round dining table I'm making from two slabs of one walnut tree.
 
